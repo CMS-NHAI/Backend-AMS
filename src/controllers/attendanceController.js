@@ -219,7 +219,18 @@ export const getAllProjects = async (req, res) => {
       
       select: {
         project_name: true,
-        id : true
+        id : true,
+        tender_id : true,
+        tender_details : true,
+        temporary_ucc : true,
+        permanent_ucc : true ,
+        ucc_id : true,
+        contract_name : true,
+        funding_scheme : true,
+        status : true,
+        stretch_name : true,
+        usc : true
+
       },
       orderBy: {
         project_name: 'asc'  // Sort alphabetically by project name
