@@ -12,7 +12,9 @@ export const RESPONSE_MESSAGES = {
         MISSING_TAB_VALUE:"Tabvalue is not provided",
         INVALIDFILTER:"Invalid filter provided.",
         NOATTENDANCERECORDS:'No attendance records found for the given range.',
-        SERVERERROR:"An error occurred while fetching attendance analytics."
+        SERVERERROR:"An error occurred while fetching attendance analytics.",
+        INVALID_REQUEST: "Invalid request date and ucc number is required",
+        INVALID_TYPE: "Please provide a proper type value"
     },
     SUCCESS:{
          ANALYTICSFETCHED: "Attendance analytics fetched successfully."
