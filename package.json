@@ -58,6 +58,6 @@
     "@babel/preset-env": "^7.26.0",
     "nodemon": "^2.0.12",
     "prettier": "^2.8.8",
-    "prisma": "^6.1.0"
+    "prisma": "^6.3.0"
   }
 }
