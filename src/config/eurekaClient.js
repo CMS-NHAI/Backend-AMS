@@ -1,4 +1,4 @@
-const Eureka = require('eureka-js-client').Eureka;
+const Eureka = require('eureka-js-client').Eureka
 
 const client = new Eureka({
   // Eureka server host and port (match with Eureka server's settings)
@@ -12,9 +12,9 @@ const client = new Eureka({
   instance: {
     app: 'node-service', // Name of your service
     hostName: 'localhost',
-    ipAddr: '127.0.0.1',  // Localhost IP or the server IP if deploying to a cloud
+    ipAddr: '127.0.0.1', // Localhost IP or the server IP if deploying to a cloud
     port: {
-      $: 3000,  // Port your Node.js app will be listening on
+      $: 3000, // Port your Node.js app will be listening on
       '@enabled': 'true',
     },
     vipAddress: 'node-service',
@@ -23,9 +23,9 @@ const client = new Eureka({
       name: 'MyOwn',
     },
   },
-});
+})
 
 // Start Eureka client to register the service
 client.start((error) => {
-  console.log('Eureka client started', error || '');
-});
+  console.log('Eureka client started', error || '')
+})
