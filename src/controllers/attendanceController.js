@@ -6,9 +6,8 @@
  */
 
 import { STATUS_CODES } from '../constants/statusCodeConstants.js'
-import { RESPONSE_MESSAGES } from '../constants/responseMessages.js'
 import { getAttendanceOverviewService } from '../services/attendanceService.js'
-
+import APIError from '../utils/apiError.js'
 /**
  * Get Attendace Overview of a user by Id.
  * @param {Request} req - Express request object.
@@ -22,12 +21,18 @@ export const getAttendanceOverview = async (req, res) => {
   try {
     const result = await getAttendanceOverviewService(userId, filter, tabValue)
 
-    res.status(200).json({
+    res.status(STATUS_CODES.OK).json({
       success: true,
       ...result,
     })
   } catch (error) {
-    console.error(error)
-    res.status(500).json({ message: RESPONSE_MESSAGES.ERROR.SERVERERROR })
+    if (error instanceof APIError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message, // Send the error message
+      });
+    }
+    // console.error(error);
+    res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({success:false, message: error.message })
   }
 }

@@ -12,6 +12,9 @@ import {
   TAB_VALUES,
   FILTERS,
 } from '../constants/attendanceConstant.js'
+import { STATUS_CODES } from '../constants/statusCodeConstants.js'
+import { RESPONSE_MESSAGES } from '../constants/responseMessages.js'
+import APIError from '../utils/apiError.js'
 
 export const getAttendanceOverviewService = async (
   userId,
@@ -19,21 +22,15 @@ export const getAttendanceOverviewService = async (
   tabValue
 ) => {
   if (!userId) {
-    return res
-      .status(STATUS_CODES.BAD_REQUEST)
-      .json({ message: RESPONSE_MESSAGES.ERROR.USER_ID_MISSING })
+      throw new APIError(STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING )
   }
 
   if (!filter) {
-    return res
-      .status(STATUS_CODES.BAD_REQUEST)
-      .json({ message: RESPONSE_MESSAGES.ERROR.MISSING_FILTER })
+    throw new APIError(STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.MISSING_FILTER)
   }
 
   if (!tabValue) {
-    return res
-      .status(STATUS_CODES.BAD_REQUEST)
-      .json({ message: RESPONSE_MESSAGES.ERROR.MISSING_TAB_VALUE })
+      throw new APIError(STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.MISSING_TAB_VALUE )
   }
 
   let startDate,
@@ -49,16 +46,16 @@ export const getAttendanceOverviewService = async (
       startDate = new Date(new Date().setDate(endDate.getDate() - 14))
       break
     default:
-      return res
-        .status(400)
-        .json({ message: RESPONSE_MESSAGES.ERROR.INVALIDFILTER })
+      throw new APIError( STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.INVALIDFILTER)
   }
 
   let attendanceRecords = []
+  let totalEmployees ;
   if (tabValue === TAB_VALUES.ME) {
     attendanceRecords = await getUserAttendance(userId, startDate, endDate)
   } else if (tabValue === TAB_VALUES.MYTEAM) {
     const employeesData = await getEmployeesHierarchy(userId)
+    totalEmployees=employeesData?.totalCount;
     const employeeUserIds = await getAttendanceForHierarchy(
       employeesData.hierarchy
     )
@@ -84,9 +81,10 @@ export const getAttendanceOverviewService = async (
 
   return {
     totalPresent: presentDays,
-    attendance_percent: attendancePercent,
-    work_hrs: avgWorkHours,
+    attendancePercent: attendancePercent,
+    avgWorkHrs: avgWorkHours,
     leaves: absentDays,
+    totalEmployees
   }
 }
 
