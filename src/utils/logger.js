@@ -12,4 +12,3 @@ export const logger = createLogger({
   ],
 })
 
-module.exports = logger
