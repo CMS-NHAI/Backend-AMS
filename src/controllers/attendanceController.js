@@ -208,8 +208,9 @@ export const getAttendanceDetails = async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching attendance details:', error);
-    return res.status(500).json({ 
+    return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
       success: false,
+      status : STATUS_CODES.INTERNAL_SERVER_ERROR,
       message: error.message
     });
   }
