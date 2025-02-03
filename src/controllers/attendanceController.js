@@ -68,8 +68,9 @@ export const getAttendanceDetails = async (req, res) => {
       });
 
       if (!projectExists) {
-        return res.status(200).json({
+        return res.status(STATUS_CODES.OK).json({
           success: false,
+          status : STATUS_CODES.OK,
           message: 'Project not found',
           data: null
         });
@@ -107,8 +108,9 @@ export const getAttendanceDetails = async (req, res) => {
     });
     
     if (!attendanceRecords || attendanceRecords.length === 0) {
-      return res.status(200).json({
+      return res.status(STATUS_CODES.OK).json({
         success: false,
+        status : STATUS_CODES.OK,
         message: 'No attendance records found for the specified period',
         data: {
           statistics: {
@@ -190,8 +192,9 @@ export const getAttendanceDetails = async (req, res) => {
       return acc;
     }, {});
 
-    return res.status(200).json({
+    return res.status(STATUS_CODES.OK).json({
       success: true,
+      status : STATUS_CODES.OK,
       message: 'Attendance details retrieved successfully',
       data: {
         statistics,
@@ -239,24 +242,27 @@ export const getAllProjects = async (req, res) => {
 
     // If no projects found
     if (!projects || projects.length === 0) {
-      return res.status(200).json({
+      return res.status(STATUS_CODES.OK).json({
         success: false,
+        status : STATUS_CODES.OK,
         message: 'No projects found',
         data: []
       });
     }
 
     
-    return res.status(200).json({
+    return res.status(STATUS_CODES.OK).json({
       success: true,
+      status : STATUS_CODES.OK,
       message: 'Projects retrieved successfully',
       data: projects
     });
 
   } catch (error) {
     console.error('Error fetching projects:', error);
-    return res.status(500).json({
+    return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
       success: false,
+      status : STATUS_CODES.INTERNAL_SERVER_ERROR,
       message: error.message || 'Internal server error',
       data: []
     });
