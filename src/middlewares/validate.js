@@ -14,23 +14,23 @@
 // 	return next();
 // };
 
-import Joi from 'joi';
+import Joi from 'joi'
 
 // Custom Joi validation middleware
 export const validate = (schema) => {
   return (req, res, next) => {
     // Validate request body by default, you can modify for query or params validation as well
-    const { error } = schema.validate(req.body);
+    const { error } = schema.validate(req.body)
 
     if (error) {
       return res.status(400).json({
         success: false,
         message: error.details[0].message, // Send the validation error message
-      });
+      })
     }
 
-    next(); // If valid, proceed to the next middleware/controller
-  };
-};
+    next() // If valid, proceed to the next middleware/controller
+  }
+}
 
-export default validate;
+export default validate

@@ -1,11 +1,12 @@
-import express from "express";
+import express from 'express'
 // import { getUserDetails } from "../services/userService";
-import { getAttendanceOverview } from "../controllers/attendanceController.js";
-import validate from "../middlewares/validate.js";
-import {validateToken} from "../middlewares/validateToken.js"
+import { getAttendanceOverview , getAttendanceDetails, getAllProjects} from '../controllers/attendanceController.js'
+import validate from '../middlewares/validate.js'
+import { validateToken } from '../middlewares/validateToken.js'
 
 const router = express.Router()
 
-router.get('/getOverviewDetails/',validateToken,getAttendanceOverview);
-
-export default router;
+router.get('/getOverviewDetails/', validateToken, getAttendanceOverview)
+router.get('/getAttendanceDetails/',validateToken,getAttendanceDetails);
+router.get('/getAllProjects', validateToken, getAllProjects);
+export default router

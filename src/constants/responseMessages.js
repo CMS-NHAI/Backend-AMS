@@ -1,10 +1,10 @@
 export const RESPONSE_MESSAGES = {
-    // example 
-    // AUTH: {
-    //     LOGIN_SUCCESS: "Login successful.",
-    //     LOGIN_FAILED: "Invalid credentials.",
-    //     UNAUTHORIZED: "You are not authorized to access this resource.",
-    //   }
+  // example
+  // AUTH: {
+  //     LOGIN_SUCCESS: "Login successful.",
+  //     LOGIN_FAILED: "Invalid credentials.",
+  //     UNAUTHORIZED: "You are not authorized to access this resource.",
+  //   }
 
     ERROR:{
         USER_ID_MISSING: "UserId is required.",
