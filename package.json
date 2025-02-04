@@ -19,6 +19,7 @@
   "dependencies": {
     "@babel/runtime": "^7.26.0",
     "@elastic/elasticsearch": "^8.17.0",
+    "@fast-csv/format": "^5.0.2",
     "@prisma/client": "^6.3.0",
     "@redis/json": "^1.0.7",
     "axios": "^1.7.9",
