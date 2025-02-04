@@ -46,64 +46,6 @@ export const getAttendanceOverview = async (req, res) => {
   }
 }
 
-// export const getAttendanceDetails = async (req, res) => {
-
-//   const { month, year, project_id , tabValue } = req.query;
-//   const userId = req.user.user_id;
-//   if(tabValue!='myteam')
-//   {
-//   try {
-//     const result = await getAttendanceService(userId, month, year, project_id);
-//     console.log(result);
-//     return res.status(result.success ? 200 : 400).json(result);
-//   } catch (error) {
-//     if (error instanceof APIError) {
-//       return res.status(error.statusCode).json({
-//         success: false,
-//         message: error.message, // Send the error message
-//       });
-//     }
-//     // console.error(error);
-//     res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({success:false, message: error.message })
-//     return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
-//       success: false,
-//       status : STATUS_CODES.INTERNAL_SERVER_ERROR,
-//       message: error.message
-//     });
-//   }
-// }
-// else {
-//    const employeesData = await getEmployeesHierarchy(userId)
-//       const totalEmployees=employeesData?.totalCount;
-//       const employeeUserIds = await getAttendanceForHierarchy(
-//         employeesData.hierarchy
-//       )
-//       console.log(employeeUserIds,"employeeUserIds");
-//       const dateRange = calculateDateRange(month, year);
-//       const attendanceRecords = await getTeamAttendance(
-//         employeeUserIds,
-//         dateRange.startDate,
-//         dateRange.endDate
-//       )
-//       console.log("atttendance records " + JSON.stringify(attendanceRecords));
-//       res.status(200).json({
-//         success: true,
-//         message: 'Attendance details retrieved successfully',
-//         status : STATUS_CODES.OK,
-//         data: {
-//           attndance: attendanceRecords,
-//           dateRange: {
-//             startDate: dateRange.startDate,
-//             endDate: dateRange.endDate,
-//           },
-//         },
-//       })
-      
-// }
-
-  
-// };
-
 export const getAttendanceDetails = async (req, res) => {
   const { month, year, project_id, tabValue } = req.query;
   const userId = req.user.user_id;
