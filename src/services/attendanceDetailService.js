@@ -38,7 +38,7 @@ export const getAttendanceService = async (userId, month, year, project_id) => {
   }
 }
 
-const calculateDateRange = (month, year) => {
+export const calculateDateRange = (month, year) => {
   let startDate, endDate
 
   if (month && year) {
@@ -174,6 +174,7 @@ const groupAttendanceByDate = (records) => {
 }
 
 const getEmptyResponse = (dateRange) => {
+  
   return {
     success: false,
     status : STATUS_CODES.OK,
@@ -195,6 +196,110 @@ const getEmptyResponse = (dateRange) => {
   }
 }
 
-// export default {
-//     getAttendanceService
-// }
+// In a new file, e.g., services/attendanceService.js
+export const processTeamAttendance = async (employeeUserIds, attendanceRecords, totalEmployees, dateRange) => {
+  // Fetch employee details
+  const employeeDetails = await prisma.user_master.findMany({
+    where: {
+      user_id: {
+        in: employeeUserIds
+      }
+    },
+    select: {
+      user_id: true,
+      name: true,
+      email: true,
+      designation: true
+    }
+  });
+
+  const projectDetails = await prisma.ucc_master.findMany({
+    where: {
+      id: {
+        in: [...new Set(attendanceRecords.map(record => record.ucc_id).filter(Boolean))]
+      }
+    },
+    select: {
+      id: true,
+      project_name: true
+    }
+  });
+  console.log(projectDetails);
+  const projectMap = projectDetails.reduce((acc, project) => {
+    acc[project.id] = project.project_name;
+    return acc;
+  }, {});
+  // Group attendance by employee
+  const employeeWiseAttendance = {};
+  
+  for (const employee of employeeDetails) {
+    const employeeAttendance = attendanceRecords.filter(
+      record => record.user_id === employee.user_id
+    );
+
+    // Calculate statistics for each employee
+    const statistics = {
+      total: employeeAttendance.length,
+      present: employeeAttendance.filter(record => record.status === 'PRESENT').length,
+      absent: employeeAttendance.filter(record => record.status === 'ABSENT').length,
+      leave: employeeAttendance.filter(record => record.status === 'LEAVE').length,
+      total_working_hours: calculateTotalWorkingHours(employeeAttendance)
+    };
+
+    const processedAttendance = employeeAttendance.map(record => ({
+      ...record,
+      total_hours: calculateTotalHours(record.check_in_time, record.check_out_time),
+      project_name: record.ucc_id ? projectMap[record.ucc_id] || 'Project Not Found' : ''
+    }));
+    // Group attendance by date
+    const dateWiseAttendance = groupAttendanceByDate2(processedAttendance);
+
+    employeeWiseAttendance[employee.user_id] = {
+      employee_details: {
+        user_id: employee.user_id,
+        name: employee.name,
+        email: employee.email,
+        designation: employee.designation
+      },
+      statistics,
+      attendance: dateWiseAttendance
+    };
+  }
+
+  return {
+    success: true,
+    message: 'Attendance details retrieved successfully',
+    status: STATUS_CODES.OK,
+    data: {
+      total_employees: totalEmployees,
+      employees: employeeWiseAttendance,
+      dateRange: {
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+      },
+    },
+  };
+};
+
+const calculateTotalWorkingHours = (attendance) => {
+  return attendance.reduce((total, record) => {
+    if (record.check_in_time && record.check_out_time) {
+      const checkIn = new Date(record.check_in_time);
+      const checkOut = new Date(record.check_out_time);
+      return total + (checkOut - checkIn) / (1000 * 60 * 60);
+    }
+    return total;
+  }, 0).toFixed(2);
+};
+
+const groupAttendanceByDate2 = (attendance) => {
+  const dateWiseAttendance = {};
+  for (const record of attendance) {
+    const date = record.attendance_date.toISOString().split('T')[0];
+    if (!dateWiseAttendance[date]) {
+      dateWiseAttendance[date] = [];
+    }
+    dateWiseAttendance[date].push(record);
+  }
+  return dateWiseAttendance;
+};
