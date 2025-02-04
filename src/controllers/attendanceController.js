@@ -80,7 +80,7 @@ export const getAttendanceDetails = async (req, res) => {
         dateRange.startDate,
         dateRange.endDate
       );
-
+      console.log(attendanceRecords);
       const result = await processTeamAttendance(
         employeeUserIds, 
         attendanceRecords, 

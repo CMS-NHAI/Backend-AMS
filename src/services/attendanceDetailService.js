@@ -213,6 +213,22 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
     }
   });
 
+  const projectDetails = await prisma.ucc_master.findMany({
+    where: {
+      id: {
+        in: [...new Set(attendanceRecords.map(record => record.ucc_id).filter(Boolean))]
+      }
+    },
+    select: {
+      id: true,
+      project_name: true
+    }
+  });
+  console.log(projectDetails);
+  const projectMap = projectDetails.reduce((acc, project) => {
+    acc[project.id] = project.project_name;
+    return acc;
+  }, {});
   // Group attendance by employee
   const employeeWiseAttendance = {};
   
@@ -230,8 +246,13 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
       total_working_hours: calculateTotalWorkingHours(employeeAttendance)
     };
 
+    const processedAttendance = employeeAttendance.map(record => ({
+      ...record,
+      total_hours: calculateTotalHours(record.check_in_time, record.check_out_time),
+      project_name: record.ucc_id ? projectMap[record.ucc_id] || 'Project Not Found' : ''
+    }));
     // Group attendance by date
-    const dateWiseAttendance = groupAttendanceByDate2(employeeAttendance);
+    const dateWiseAttendance = groupAttendanceByDate2(processedAttendance);
 
     employeeWiseAttendance[employee.user_id] = {
       employee_details: {
