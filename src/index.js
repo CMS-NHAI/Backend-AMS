@@ -1,7 +1,6 @@
 import express from 'express'
 // import http from "http";
 
-import locationRoute from "./routes/locationRoute.js";
 import compression from 'compression'
 import helmet from 'helmet'
 import cors from 'cors'
@@ -22,7 +21,6 @@ app.use(cors())
 app.use(express.json())
 
 app.use("/api/v1", centralizedRoutes);
-app.use("/api/v1", locationRoute)
 
 const PORT = process.env.PORT || 3002
 // const server = http.createServer(app);

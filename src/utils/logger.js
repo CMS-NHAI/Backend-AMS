@@ -11,5 +11,3 @@ export const logger = createLogger({
     new transports.Console(),
   ],
 })
-
-module.exports = logger
