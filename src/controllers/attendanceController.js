@@ -54,7 +54,7 @@ export const getAttendanceDetails = async (req, res) => {
     try {
       const result = await getAttendanceService(userId, month, year, project_id);
       console.log(result);
-      return res.status(200).json(result);
+      return res.status(STATUS_CODES.OK).json(result);
     } catch (error) {
       if (error instanceof APIError) {
         return res.status(error.statusCode).json({
@@ -88,7 +88,7 @@ export const getAttendanceDetails = async (req, res) => {
         dateRange
       );
 
-      return res.status(200).json(result);
+      return res.status(STATUS_CODES.OK).json(result);
       
     } catch (error) {
       console.error('Error fetching team attendance:', error);
