@@ -5,6 +5,12 @@
 import { getLocationDetails } from "../services/locationService.js";
 import { logger } from "../utils/logger.js";
 
+/**
+ * Controller to fetch attendance location details.
+ * 
+ * @param req Request from front-end
+ * @param res Response to front-end
+ */
 export const fetchlocationBydate = async (req, res) => {    
     try {
         const locationDetails = await getLocationDetails(req, res);
