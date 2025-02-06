@@ -1,6 +1,4 @@
 import express from 'express'
-// import http from "http";
-
 import compression from 'compression'
 import helmet from 'helmet'
 import cors from 'cors'
