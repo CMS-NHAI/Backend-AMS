@@ -16,6 +16,7 @@ import APIError from '../utils/apiError.js';
 
 
 import { PrismaClient } from '@prisma/client';
+import { TAB_VALUES } from '../constants/attendanceConstant.js';
 const prisma = new PrismaClient();
 /**
  * Get Attendace Overview of a user by Id.
@@ -47,10 +48,10 @@ export const getAttendanceOverview = async (req, res) => {
 }
 
 export const getAttendanceDetails = async (req, res) => {
-  const { month, year, project_id, tabValue } = req.query;
+  const { month, year, project_id, tabValue , date } = req.query;
   const userId = req.user.user_id;
 
-  if (tabValue != 'myteam') {
+  if (tabValue != TAB_VALUES.MYTEAM) {
     try {
       const result = await getAttendanceService(userId, month, year, project_id);
       console.log(result);
@@ -74,11 +75,13 @@ export const getAttendanceDetails = async (req, res) => {
       const totalEmployees = employeesData?.totalCount;
       const employeeUserIds = await getAttendanceForHierarchy(employeesData.hierarchy);
       
-      const dateRange = calculateDateRange(month, year);
+      const dateRange = calculateDateRange(month, year, date);
+      console.log('Date Range:', dateRange);
       const attendanceRecords = await getTeamAttendance(
         employeeUserIds,
         dateRange.startDate,
-        dateRange.endDate
+        dateRange.endDate,
+        project_id
       );
       console.log(attendanceRecords);
       const result = await processTeamAttendance(
@@ -87,6 +90,7 @@ export const getAttendanceDetails = async (req, res) => {
         totalEmployees, 
         dateRange
       );
+      console.log('result ', result);
 
       return res.status(STATUS_CODES.OK).json(result);
       
