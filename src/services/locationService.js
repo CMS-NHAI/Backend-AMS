@@ -55,12 +55,12 @@ export const getLocationDetails = async (req, res) => {
     } catch (error) {
         logger.error({
             message: 'Error Occured while fetching data from DB',
-            error: error.message,
+            error: error,
             url: req.url,
             method: req.method,
             time: new Date().toISOString(),
         });
-        res.status(500).json({ message: RESPONSE_MESSAGES.ERROR.LOCATION_FETCH_ERROR });
+        res.status(500).json({ status: false, message: RESPONSE_MESSAGES.ERROR.SERVERERROR });
     }
 
     return response;
