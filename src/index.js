@@ -4,6 +4,8 @@ import helmet from 'helmet'
 import cors from 'cors'
 import centralizedRoutes from './routes/index.js'
 import { sendMessage } from './kafka/kafkaProducer.js'
+import { STATUS_CODES } from './constants/statusCodeConstants.js'
+import { APP_CONSTANTS } from './constants/appConstants.js'
 
 // import ArticleRouter from "./routes/ArticleRoute.js";
 // import UserRouter from "./routes/userRoute.js";
@@ -20,8 +22,14 @@ app.use(express.json())
 
 app.use("/api/v1", centralizedRoutes);
 
-const PORT = process.env.PORT || 3002
+const PORT = process.env.PORT || 3001
 // const server = http.createServer(app);
+
+app.get('/', (req, res) => {
+  res.status(STATUS_CODES.OK).send({
+    message: `Welcome to AMS-Service Datalake 3.0 ${APP_CONSTANTS.APP_NAME} v${APP_CONSTANTS.VERSION}`,
+  });
+});
 
 app.listen(PORT, () => {
   console.log(`server started on PORT ${PORT}`)
