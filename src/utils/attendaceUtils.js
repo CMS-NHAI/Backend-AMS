@@ -1,4 +1,6 @@
 import { format } from "@fast-csv/format";
+import { RESPONSE_MESSAGES } from "../constants/responseMessages.js";
+import { STATUS_CODES } from "../constants/statusCodeConstants.js";
 
 /**
  * Converts an array of objects to a CSV stream and sends it as a response.
@@ -7,10 +9,10 @@ import { format } from "@fast-csv/format";
  * @param {Array} headers - Array of header objects [{ id: "id", title: "ID" }, ...].
  * @param {string} filename - Name of the downloaded file.
  */
-export const exportToCSV = async (res, data, headers = null, filename="users") => {
+export const exportToCSV = async (res, data,filename="users", headers = null) => {
     try {
         if (!data || data.length === 0) {
-            return res.status(400).json({ message: "No data available for export" });
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.EXPORT_DATA_NOT_FOUND });
         }
 
         if (!headers) {

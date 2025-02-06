@@ -13,9 +13,11 @@ export const RESPONSE_MESSAGES = {
     INVALIDFILTER: 'Invalid filter provided.',
     NOATTENDANCERECORDS: 'No attendance records found for the given range.',
     SERVERERROR: 'An error occurred while fetching attendance analytics.',
-    PROJECT_NOT_FOUND:'Project not Found'
+    PROJECT_NOT_FOUND:'Project not Found',
+    EXPORT_DATA_NOT_FOUND:"No data available for export"
   },
   SUCCESS: {
-    ANALYTICSFETCHED: 'Attendance analytics fetched successfully.',
+    ANALYTICSFETCHED: 'Attendance Data fetched successfully.',
+
   },
 }

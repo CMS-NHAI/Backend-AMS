@@ -11,6 +11,9 @@ import { getAttendanceService } from '../services/attendanceDetailService.js'
 import APIError from '../utils/apiError.js'
 
 import { PrismaClient } from '@prisma/client';
+import { TAB_VALUES } from '../constants/attendanceConstant.js';
+import { exportToCSV } from '../utils/attendaceUtils.js';
+import { RESPONSE_MESSAGES } from '../constants/responseMessages.js';
 const prisma = new PrismaClient();
 /**
  * Get Attendace Overview of a user by Id.
@@ -27,6 +30,7 @@ export const getAttendanceOverview = async (req, res) => {
 
     res.status(STATUS_CODES.OK).json({
       success: true,
+      message:RESPONSE_MESSAGES.SUCCESS.ANALYTICSFETCHED,
       ...result,
     })
   } catch (error) {
@@ -36,19 +40,35 @@ export const getAttendanceOverview = async (req, res) => {
         message: error.message, // Send the error message
       });
     }
-    // console.error(error);
     res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({success:false, message: error.message })
   }
 }
 
 export const getAttendanceDetails = async (req, res) => {
 
-  const { month, year, project_id } = req.query;
+  const { month, year, project_id, exports ,tabValue} = req.query;
   const userId = req.user.user_id;
   
   try {
     const result = await getAttendanceService(userId, month, year, project_id);
-    console.log(result);
+    if(exports =='true' && tabValue == TAB_VALUES.ME){
+      const exportAttendanceRecords = [];
+      for(const[date,records] of Object.entries(result.data.attendance)){
+       await records.forEach(record => {
+          exportAttendanceRecords.push({
+            date,
+            attendaceStatus:record.status,
+            projectName:record.project_name,
+            totalHours:record.total_hours,
+            checkOutTime:record.check_out_time,
+            checkInTime:record.check_in_time
+
+          })
+          
+        });
+      }
+    return await exportToCSV(res,exportAttendanceRecords,"MyAttendace")
+    }
     return res.status(result.success ? 200 : 400).json(result);
   } catch (error) {
     if (error instanceof APIError) {
@@ -57,8 +77,6 @@ export const getAttendanceDetails = async (req, res) => {
         message: error.message, // Send the error message
       });
     }
-    // console.error(error);
-    res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({success:false, message: error.message })
     return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
       success: false,
       status : STATUS_CODES.INTERNAL_SERVER_ERROR,
