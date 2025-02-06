@@ -14,6 +14,7 @@ export const RESPONSE_MESSAGES = {
     NOATTENDANCERECORDS: 'No attendance records found for the given range.',
     SERVERERROR: 'An error occurred while fetching attendance analytics.',
     PROJECT_NOT_FOUND:'Project not Found',
+    EXPORT_DATA_NOT_FOUND:"No data available for export",
     INVALID_REQUEST: "Invalid request date and ucc number is required",
     INVALID_TYPE: "Please provide a proper type value",
     ERROR_DB_FETCH: "Error Occured while fetching data from DB",
