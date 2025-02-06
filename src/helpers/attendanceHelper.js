@@ -26,5 +26,6 @@ export const calculateTotalworkinghours = (attendanceRecords) => {
       const hours = (checkOut - checkIn) / (1000 * 60 * 60) // Convert ms to hours
       return sum + hours
     }
+    return sum;
   }, 0)
 }
