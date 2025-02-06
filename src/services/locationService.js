@@ -24,37 +24,68 @@ export const getLocationDetails = async (req, res) => {
     const date = req.query?.date;
     const uccNo = req.query?.uccNo;
     const type = req.query?.type;
-    let response;
+    const attendanceId = req.query?.attendanceId;
 
-    if (!userId || !date || !uccNo || !type) {
+    if (!userId || !date || !uccNo || !type || !attendanceId) {
         return res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.INVALID_REQUEST });
     }
 
     try {
         if (type === STRING_CONSTANT.SINGLE_TYPE) {
-            response = await prisma.$queryRaw`
+            const attendanceData = await prisma.$queryRaw`
                 SELECT 
                 attendance_id,
+                user_id,
+                attendance_date,
+                status,
+                check_in_time,
                 check_in_lat, 
                 check_in_lng, 
-                CAST(check_in_loc AS TEXT) AS check_in_loc, 
+                ST_AsGeoJSON(check_in_loc) AS check_in_loc, 
+                check_out_time,
                 check_out_lat, 
                 check_out_lng, 
-                CAST(check_out_loc AS TEXT) AS check_out_loc, 
+                ST_AsGeoJSON(check_out_loc) AS check_out_loc, 
                 accuracy, 
                 geofence_status 
                 FROM am_attendance 
-                WHERE user_id = ${userId}
+                WHERE attendance_id = ${parseInt(attendanceId)}
                 AND attendance_date = CAST(${date} AS DATE) AND ucc_id = ${uccNo};
             `;
+
+            const stretchLineData = await getGisData(uccNo);
+
+            if (attendanceData.length > 0) {
+                attendanceData[0].check_out_loc = JSON.parse(attendanceData[0].check_out_loc);
+                attendanceData[0].check_in_loc = JSON.parse(attendanceData[0].check_in_loc);
+
+                await calculateAndAddDistance(attendanceId, date, uccNo, attendanceData);
+            }
+
+            return { attendanceData, stretchLineData };
+
         } else if (type === STRING_CONSTANT.MULTIPLE_TYPE) {
-            response = await getAttendanceLocationForTeam(userId, date, uccNo);
+            const attendanceData = await getAttendanceLocationForTeam(userId, date, uccNo);
+
+            if (attendanceData.length > 0) {
+                attendanceData.map(data => {
+                    data.check_out_loc = JSON.parse(data.check_out_loc);
+                    data.check_in_loc = JSON.parse(data.check_in_loc);
+                });
+            } else {
+                res.status(200).json({ status: true, data: { message: RESPONSE_MESSAGES.SUCCESS.NO_TEAM_MEMBERS } })
+            }
+
+
+            const stretchLineData = await getGisData(uccNo);
+
+            return { attendanceData, stretchLineData };
         } else {
             return res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.INVALID_TYPE });
         }
     } catch (error) {
         logger.error({
-            message: 'Error Occured while fetching data from DB',
+            message: RESPONSE_MESSAGES.ERROR.ERROR_DB_FETCH,
             error: error,
             url: req.url,
             method: req.method,
@@ -62,8 +93,6 @@ export const getLocationDetails = async (req, res) => {
         });
         res.status(500).json({ status: false, message: RESPONSE_MESSAGES.ERROR.SERVERERROR });
     }
-
-    return response;
 }
 
 /**
@@ -87,24 +116,33 @@ const getAttendanceLocationForTeam = async (parentId, date, uccNo) => {
 
     const teamUserIds = await getTeamUserIds(parentId, new Set());
 
-    const teamLocationDetails = await prisma.$queryRaw`
+    if (teamUserIds.length > 0) {
+
+        const teamLocationDetails = await prisma.$queryRaw`
         SELECT 
-        attendance_id, 
-        user_id,
-        check_in_lat, 
-        check_in_lng, 
-        CAST(check_in_loc AS TEXT) AS check_in_loc, 
-        check_out_lat, 
-        check_out_lng, 
-        CAST(check_out_loc AS TEXT) AS check_out_loc, 
-        accuracy, 
-        geofence_status
+            attendance_id,
+            user_id,
+            attendance_date,
+            status,
+            check_in_time,
+            check_in_lat, 
+            check_in_lng, 
+            ST_AsGeoJSON(check_in_loc) AS check_in_loc, 
+            check_out_time,
+            check_out_lat, 
+            check_out_lng, 
+            ST_AsGeoJSON(check_out_loc) AS check_out_loc, 
+            accuracy, 
+            geofence_status 
         FROM am_attendance 
         WHERE user_id IN (${Prisma.join(teamUserIds)})
         AND attendance_date = CAST(${date} AS DATE) AND ucc_id = ${uccNo};
     `;
 
-    return teamLocationDetails;
+        return teamLocationDetails;
+    } else {
+        return [];
+    }
 }
 
 /**
@@ -136,4 +174,125 @@ const getTeamUserIds = async (userId, visitedUserId = new Set()) => {
         ));
 
     return memberUserIds.flat();
+}
+
+/**
+ * Fetch NHAI centerlines data based on given UCC ID.
+ * 
+ * @param uccId for which centerlines data need to be fetched
+ * @returns NHAI Centerlines data including wkb_geometry
+ */
+async function getGisData(uccId) {
+
+    try {
+        const result = await prisma.$queryRaw`
+          SELECT 
+            ogc_fid,
+            ucc,
+            ST_AsGeoJSON(wkb_geometry) AS wkb_geometry  -- Convert geometry to GeoJSON
+          FROM nhai_gis.nhaicenterlines WHERE ucc = ${uccId};
+        `;
+
+        if (result.length > 0) {
+            result[0].wkb_geometry = JSON.parse(result[0].wkb_geometry);
+        }
+        return result;
+    } catch (error) {
+        throw LocationServiceError(RESPONSE_MESSAGES.ERROR.CENTERLINES_ERROR);
+    }
+}
+
+/**
+ * Used to calculate and add the distance between centerlines and employee's attendance points.
+ * 
+ * @param attendanceId to fetch user data
+ * @param attendanceDate to filter data based on date
+ * @param uccId to map centerlines data
+ * @param attendanceData to map or add the calculated distance
+ */
+async function calculateAndAddDistance(attendanceId, attendanceDate, uccId, attendanceData) {
+
+    const result = await prisma.$queryRaw`
+    WITH check_in_distance AS (
+        SELECT 
+            a.attendance_id AS source_id,
+            r.ogc_fid AS target_id, 
+            a.ucc_id AS source_ucc_id,
+            r.ucc AS target_ucc, 
+            a.check_in_loc AS check_in_geom,
+            r.wkb_geometry AS road_geom,
+            ST_Distance(a.check_in_loc, r.wkb_geometry) AS distance_in_meters,
+            CASE 
+                WHEN ST_DWithin(a.check_in_loc, r.wkb_geometry, 200) THEN 'Within 200 meters'
+                ELSE 'Outside 200 meters'
+            END AS distance_message
+        FROM 
+            tenant_nhai.am_attendance a
+        JOIN 
+            nhai_gis.nhaicenterlines r
+        ON 
+            a.ucc_id = r.ucc
+        WHERE 
+            a.check_in_loc IS NOT NULL
+            AND a.attendance_date = CAST(${attendanceDate} AS DATE)
+            AND a.ucc_id = ${uccId}
+            AND a.attendance_id = ${attendanceId}::integer
+    ),
+    check_out_distance AS (
+        SELECT 
+            a.attendance_id AS source_id,
+            r.ogc_fid AS target_id, 
+            a.ucc_id AS source_ucc_id,
+            r.ucc AS target_ucc, 
+            a.check_out_loc AS check_out_geom,
+            r.wkb_geometry AS road_geom,
+            ST_Distance(a.check_out_loc, r.wkb_geometry) AS distance_in_meters,
+            CASE 
+                WHEN ST_DWithin(a.check_out_loc, r.wkb_geometry, 200) THEN 'Within 200 meters'
+                ELSE 'Outside 200 meters'
+            END AS distance_message
+        FROM 
+            tenant_nhai.am_attendance a
+        JOIN 
+            nhai_gis.nhaicenterlines r
+        ON 
+            a.ucc_id = r.ucc
+        WHERE 
+            a.check_out_loc IS NOT NULL
+            AND a.attendance_date = CAST(${attendanceDate} AS DATE)
+            AND a.ucc_id = ${uccId}
+            AND a.attendance_id = ${attendanceId}::integer
+    )
+    SELECT 
+        source_ucc_id,
+        target_ucc,
+        'Check-In' AS location_type,
+        distance_in_meters,
+        distance_message
+    FROM 
+        check_in_distance
+    UNION ALL
+    SELECT 
+        source_ucc_id,
+        target_ucc,
+        'Check-Out' AS location_type,
+        distance_in_meters,
+        distance_message
+    FROM 
+        check_out_distance
+    ORDER BY 
+        source_ucc_id, location_type, distance_in_meters ASC;
+    `;
+
+    if(!result)
+        throw new LocationServiceError("Unable to calculate the distnace. ");
+
+    attendanceData.forEach(attendance => {
+        result.forEach(distanceData => {
+            // Add distance_in_meters and distance_message as dynamic keys
+            attendance[`${distanceData.location_type.toLowerCase()}_distance`] = distanceData.distance_in_meters;
+            attendance[`${distanceData.location_type.toLowerCase()}_distance_message`] = distanceData.distance_message;
+        }
+        );
+    });
 }
