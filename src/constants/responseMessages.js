@@ -14,7 +14,8 @@ export const RESPONSE_MESSAGES = {
     NOATTENDANCERECORDS: 'No attendance records found for the given range.',
     SERVERERROR: 'An error occurred while fetching attendance analytics.',
     PROJECT_NOT_FOUND:'Project not Found',
-    EXPORT_DATA_NOT_FOUND:"No data available for export"
+    EXPORT_DATA_NOT_FOUND:"No data available for export",
+    INVALID_FACEAUTHSTATUS:'User Face Authentication Failed'
   },
   SUCCESS: {
     ANALYTICSFETCHED: 'Attendance Data fetched successfully.',
