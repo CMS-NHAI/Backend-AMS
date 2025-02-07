@@ -36,7 +36,7 @@ export const getAttendanceOverview = async (req, res) => {
     res.status(STATUS_CODES.OK).json({
       success: true,
       message:RESPONSE_MESSAGES.SUCCESS.ANALYTICSFETCHED,
-      ...result,
+      data:{...result},
     })
   } catch (error) {
     if (error instanceof APIError) {
