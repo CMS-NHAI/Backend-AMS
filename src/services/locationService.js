@@ -37,18 +37,21 @@ export const getLocationDetails = async (req, res) => {
                 attendance_id,
                 user_id,
                 attendance_date,
-                status,
+                check_in_geofence_status,
+                check_in_remarks,
+                check_in_accuracy,
                 check_in_time,
                 check_in_lat, 
                 check_in_lng, 
-                ST_AsGeoJSON(check_in_loc) AS check_in_loc, 
+                public.ST_AsGeoJSON(check_in_loc) AS check_in_loc, 
+                check_out_geofence_status,
+                check_out_remarks,
+                check_out_accuracy,
                 check_out_time,
                 check_out_lat, 
                 check_out_lng, 
-                ST_AsGeoJSON(check_out_loc) AS check_out_loc, 
-                accuracy, 
-                geofence_status 
-                FROM am_attendance 
+                public.ST_AsGeoJSON(check_out_loc) AS check_out_loc
+                FROM tenant_nhai.am_attendance 
                 WHERE attendance_id = ${parseInt(attendanceId)}
                 AND attendance_date = CAST(${date} AS DATE) AND ucc_id = ${uccNo};
             `;
@@ -189,7 +192,7 @@ async function getGisData(uccId) {
           SELECT 
             ogc_fid,
             ucc,
-            ST_AsGeoJSON(wkb_geometry) AS wkb_geometry  -- Convert geometry to GeoJSON
+            public.ST_AsGeoJSON(wkb_geometry) AS wkb_geometry  -- Convert geometry to GeoJSON
           FROM nhai_gis.nhaicenterlines WHERE ucc = ${uccId};
         `;
 
@@ -221,9 +224,9 @@ async function calculateAndAddDistance(attendanceId, attendanceDate, uccId, atte
             r.ucc AS target_ucc, 
             a.check_in_loc AS check_in_geom,
             r.wkb_geometry AS road_geom,
-            ST_Distance(a.check_in_loc, r.wkb_geometry) AS distance_in_meters,
+            public.ST_Distance(a.check_in_loc, r.wkb_geometry) AS distance_in_meters,
             CASE 
-                WHEN ST_DWithin(a.check_in_loc, r.wkb_geometry, 200) THEN 'Within 200 meters'
+                WHEN public.ST_DWithin(a.check_in_loc, r.wkb_geometry, 200) THEN 'Within 200 meters'
                 ELSE 'Outside 200 meters'
             END AS distance_message
         FROM 
@@ -246,9 +249,9 @@ async function calculateAndAddDistance(attendanceId, attendanceDate, uccId, atte
             r.ucc AS target_ucc, 
             a.check_out_loc AS check_out_geom,
             r.wkb_geometry AS road_geom,
-            ST_Distance(a.check_out_loc, r.wkb_geometry) AS distance_in_meters,
+            public.ST_Distance(a.check_out_loc, r.wkb_geometry) AS distance_in_meters,
             CASE 
-                WHEN ST_DWithin(a.check_out_loc, r.wkb_geometry, 200) THEN 'Within 200 meters'
+                WHEN public.ST_DWithin(a.check_out_loc, r.wkb_geometry, 200) THEN 'Within 200 meters'
                 ELSE 'Outside 200 meters'
             END AS distance_message
         FROM 
