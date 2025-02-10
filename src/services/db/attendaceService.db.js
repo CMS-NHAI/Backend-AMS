@@ -11,6 +11,7 @@ export const getUserAttendance = async (userId, startDate, endDate) => {
 }
 
 export const getTeamAttendance = async (employeeUserIds, startDate, endDate, project_id) => {
+  
   return await prisma.am_attendance.findMany({
     where: {
       user_id: {
@@ -18,7 +19,7 @@ export const getTeamAttendance = async (employeeUserIds, startDate, endDate, pro
       },
       attendance_date: {
         gte: startDate,
-        lt: endDate
+        lte: endDate
       },
       ...(project_id && { ucc_id: project_id }) 
     },

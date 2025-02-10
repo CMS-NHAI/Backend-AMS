@@ -22,7 +22,8 @@
     }
   
     const projectDetails = await fetchProjectDetails(attendanceRecords)
-    const processedData = processAttendanceData(attendanceRecords, projectDetails)
+    const processedData = processAttendanceData(attendanceRecords, projectDetails);
+    
   
     return {
       success: true,
@@ -174,7 +175,7 @@
     
     return {
       statistics: calculateStatistics(processedRecords),
-      groupedAttendance: groupAttendanceByDate(processedRecords)
+      groupedAttendance: processedRecords
     }
   }
 
@@ -243,15 +244,15 @@
     }
   }
 
-  const groupAttendanceByDate = (records) => {
-    return records.reduce((acc, record) => {
-      const date = record.attendance_date.toISOString().split('T')[0]
-      if (!acc[date]) {
-        acc[date] = []
-      }
-      acc[date].push(record)
-      return acc
-    }, {})
+  // const groupAttendanceByDate = (records) => {
+  //   return records.reduce((acc, record) => {
+  //     // const date = record.attendance_date.toISOString().split('T')[0]
+  //     // if (!acc[date]) {
+  //     //   acc[date] = []
+  //     // }
+  //     acc.push(record)
+  //     return acc
+  //   }, {})
 
   //   return records.map(record => ({
   //     date: record.attendance_date.toISOString().split('T')[0],
@@ -270,7 +271,7 @@
 //     new Date(b.attendance_date) - new Date(a.attendance_date)
 // );
 
-  }
+  // }
 
   const getEmptyResponse = (dateRange) => {
     
@@ -580,13 +581,13 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
           };
       });
   
-      const dateWiseAttendance = {};
+      const dateWiseAttendance = [];
       processedAttendance.forEach(record => {
-          const dateKey = new Date(record.attendance_date).toISOString().split('T')[0];
-          if (!dateWiseAttendance[dateKey]) {
-              dateWiseAttendance[dateKey] = [];
-          }
-          dateWiseAttendance[dateKey].push(record);
+          //const dateKey = new Date(record.attendance_date).toISOString().split('T')[0];
+          // if (!dateWiseAttendance[dateKey]) {
+          //     dateWiseAttendance[dateKey] = [];
+          // }
+          dateWiseAttendance.push(record);
       });
 
       const statistics = {
