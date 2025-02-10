@@ -3,30 +3,31 @@
   import { RESPONSE_MESSAGES } from '../constants/responseMessages.js'
   import APIError from '../utils/apiError.js'
 
-  export const getAttendanceService = async (userId, month, year, project_id) => {
+  export const getAttendanceService = async (userId, month, year, project_id, page = 1, limit = 10) => {
     if (!userId) {
       throw new APIError(STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING)
     }
-
+  
     const dateRange = calculateDateRange(month, year)
     
     if (project_id) {
       await validateProject(project_id)
     }
-
-    const attendanceRecords = await fetchAttendanceRecords(userId, dateRange.startDate, dateRange.endDate, project_id)
+  
+    const { records: attendanceRecords, total, currentPage, totalPages } = 
+      await fetchAttendanceRecords(userId, dateRange.startDate, dateRange.endDate, project_id, page, limit)
     
     if (!attendanceRecords || attendanceRecords.length === 0) {
       return getEmptyResponse(dateRange)
     }
-
+  
     const projectDetails = await fetchProjectDetails(attendanceRecords)
     const processedData = processAttendanceData(attendanceRecords, projectDetails)
-
+  
     return {
       success: true,
       message: 'Attendance details retrieved successfully',
-      status : STATUS_CODES.OK,
+      status: STATUS_CODES.OK,
       data: {
         statistics: processedData.statistics,
         attendance: processedData.groupedAttendance,
@@ -34,6 +35,12 @@
           startDate: dateRange.startDate,
           endDate: dateRange.endDate,
         },
+        pagination: {
+          currentPage,
+          totalPages,
+          totalRecords: total,
+          limit
+        }
       },
     }
   }
@@ -45,6 +52,7 @@
       // Check if date is a number (for last n days) or a specific date string
       if (!isNaN(date)) {
         // If date is a number (e.g., 14 for last 14 days)
+       
         const daysToFetch = parseInt(date);
         const currentDate = new Date();
         endDate = new Date(Date.UTC(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 23, 59, 59, 999));
@@ -81,35 +89,70 @@
     }
   }
 
-  const fetchAttendanceRecords = async (userId, startDate, endDate, project_id) => {
-    return await prisma.am_attendance.findMany({
+  const fetchAttendanceRecords = async (userId, startDate, endDate, project_id, page = 1, limit = 10) => {
+    const skip = (page - 1) * limit;
+    
+    const records = await prisma.am_attendance.findMany({
       where: {
         user_id: userId,
         attendance_date: {
           gte: startDate,
           lte: endDate,
         },
-        is_active: true,
         ...(project_id && { ucc_id: project_id })
       },
       select: {
         attendance_id: true,
-        attendance_date: true,
-        status: true,
+        ucc_id: true,
         check_in_time: true,
-        check_out_time: true,
         check_in_lat: true,
-        check_in_lng: true, 
+        check_in_lng: true,
+        check_in_loc: true,
+        check_in_accuracy: true,
+        check_in_device_id: true,
+        check_in_ip_address: true,
+        check_in_remarks: true,
+        check_in_geofence_status: true,
+        check_out_time: true,
         check_out_lat: true,
         check_out_lng: true,
-        geofence_status: true,
-        is_online: true,
-        ucc_id: true
+        check_out_loc: true,
+        check_out_accuracy: true,
+        check_out_device_id: true,
+        check_out_ip_address: true,
+        check_out_remarks: true,
+        check_out_geofence_status: true,
+        created_by: true,
+        created_at: true,
+        updated_by: true,
+        updated_at: true,
+        attendance_date: true,
+        user_id: true
       },
       orderBy: {
         attendance_date: 'desc',
       },
-    })
+      skip,
+      take: limit
+    });
+  
+    const total = await prisma.am_attendance.count({
+      where: {
+        user_id: userId,
+        attendance_date: {
+          gte: startDate,
+          lte: endDate,
+        },
+        ...(project_id && { ucc_id: project_id })
+      }
+    });
+  
+    return {
+      records,
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit)
+    };
   }
 
   const fetchProjectDetails = async (attendanceRecords) => {
@@ -147,6 +190,9 @@
   const processAttendanceRecords = (records, projectMap) => {
     return records.map(record => {
       const attendanceDate = new Date(record.attendance_date);
+      
+      // Determine status based on check_in_time
+      const status = record.check_in_time ? 'PRESENT' : 'ABSENT';
     
       // Combine attendance date with check in/out times
       const checkInTime = record.check_in_time ? new Date(
@@ -165,9 +211,9 @@
         new Date(record.check_out_time).getMinutes()
       ).toISOString() : null;
     
-  
       return {
         ...record,
+        status, // Add derived status
         check_in_time: checkInTime,
         check_out_time: checkOutTime,
         total_hours: calculateTotalHours(record.check_in_time, record.check_out_time),
@@ -193,9 +239,8 @@
   const calculateStatistics = (records) => {
     return {
       total: records.length,
-      present: records.filter(record => record.status === 'PRESENT').length,
-      absent: records.filter(record => record.status === 'ABSENT').length,
-      leave: records.filter(record => record.status === 'LEAVE').length,
+      present: records.filter(record => record.chek_in_time).length,
+      absent: records.filter(record => record.check_in_time==null).length,
       total_working_hours: Math.round(records.reduce((sum, record) => sum + record.total_hours, 0) * 100) / 100,
     }
   }
@@ -235,117 +280,175 @@
   }
 
   // In a new file, e.g., services/attendanceService.js
-  export const processTeamAttendance = async (employeeUserIds, attendanceRecords, totalEmployees, dateRange, date) => {
-   
+  export const processTeamAttendance = async (employeeUserIds, attendanceRecords, totalEmployees, dateRange, date, page = 1, limit = 10) => {
+    // Calculate pagination
+    const currentPage = parseInt(page);
+    const itemsPerPage = parseInt(limit);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    
+    // Paginate employee IDs
+    const paginatedEmployeeIds = employeeUserIds.slice(startIndex, startIndex + itemsPerPage);
+     
     const employeeDetails = await prisma.user_master.findMany({
-      where: {
-        user_id: {
-          in: employeeUserIds
+        where: {
+            user_id: {
+                in: paginatedEmployeeIds
+            }
+        },
+        select: {
+            user_id: true,
+            name: true,
+            email: true,
+            designation: true
         }
-      },
-      select: {
-        user_id: true,
-        name: true,
-        email: true,
-        designation: true
-      }
-    });
-  
+    }); 
+    
     const projectDetails = await prisma.ucc_master.findMany({
-      where: {
-        id: {
-          in: [...new Set(attendanceRecords.map(record => record.ucc_id).filter(Boolean))]
+        where: {
+            id: {
+                in: [...new Set(attendanceRecords.map(record => record.ucc_id).filter(Boolean))]
+            }
+        },
+        select: {
+            id: true,
+            project_name: true
         }
-      },
-      select: {
-        id: true,
-        project_name: true
-      }
     });
-  
+    
     const projectMap = projectDetails.reduce((acc, project) => {
-      acc[project.id] = project.project_name;
-      return acc;
+        acc[project.id] = project.project_name;
+        return acc;
     }, {});
-  
+    
     const employeeWiseAttendance = {};
     
     for (const employee of employeeDetails) {
-      let employeeAttendance = attendanceRecords.filter(
-        record => record.user_id === employee.user_id
-      );
-  
-      // Apply date filter if specified
-      if (date) {
-        employeeAttendance = employeeAttendance.filter(
-          record => record.attendance_date.toISOString().split('T')[0] === date
+        // Filter attendance records for current employee
+        let employeeAttendance = attendanceRecords.filter(
+            record => record.user_id === employee.user_id
         );
-      }
-  
-      const statistics = {
-        total: employeeAttendance.length,
-        present: employeeAttendance.filter(record => record.status === 'PRESENT').length,
-        absent: employeeAttendance.filter(record => record.status === 'ABSENT').length,
-        leave: employeeAttendance.filter(record => record.status === 'LEAVE').length,
-        total_working_hours: calculateTotalWorkingHours(employeeAttendance)
-      };
-  
-      const processedAttendance = employeeAttendance.map(record => {
-        const attendanceDate = new Date(record.attendance_date);
-        
-        const checkInTime = record.check_in_time ? new Date(
-          attendanceDate.getFullYear(),
-          attendanceDate.getMonth(),
-          attendanceDate.getDate(),
-          new Date(record.check_in_time).getHours(),
-          new Date(record.check_in_time).getMinutes()
-        ).toISOString() : null;
 
-        const checkOutTime = record.check_out_time ? new Date(
-          attendanceDate.getFullYear(),
-          attendanceDate.getMonth(),
-          attendanceDate.getDate(),
-          new Date(record.check_out_time).getHours(),
-          new Date(record.check_out_time).getMinutes()
-        ).toISOString() : null;
+        // Handle date filtering
+        if (date) {
+            // If date is a number (last n days)
+            if (!isNaN(date)) {
+                const daysToFetch = parseInt(date);
+                const endDate = new Date();
+                const startDate = new Date();
+                startDate.setDate(startDate.getDate() - (daysToFetch - 1));
+                
+                employeeAttendance = employeeAttendance.filter(record => {
+                    const recordDate = new Date(record.attendance_date);
+                    return recordDate >= startDate && recordDate <= endDate;
+                });
+            } else {
+                // If date is a specific date
+                const targetDate = new Date(date).toISOString().split('T')[0];
+                employeeAttendance = employeeAttendance.filter(record => 
+                    new Date(record.attendance_date).toISOString().split('T')[0] === targetDate
+                );
+            }
+        } else {
+            // If no date specified, use dateRange
+            employeeAttendance = employeeAttendance.filter(record => {
+                const recordDate = new Date(record.attendance_date);
+                return recordDate >= dateRange.startDate && recordDate <= dateRange.endDate;
+            });
+        }
+    
+        const processedAttendance = employeeAttendance.map(record => {
+            const attendanceDate = new Date(record.attendance_date);
+            
+            let checkInTime = null;
+            let checkOutTime = null;
+            
+            if (record.check_in_time) {
+                const checkInDate = new Date(record.check_in_time);
+                checkInTime = new Date(
+                    attendanceDate.getFullYear(),
+                    attendanceDate.getMonth(),
+                    attendanceDate.getDate(),
+                    checkInDate.getHours(),
+                    checkInDate.getMinutes()
+                ).toISOString();
+            }
 
-        return {
-          ...record,
-          check_in_time: checkInTime,
-          check_out_time: checkOutTime,
-          total_hours: calculateTotalHours(checkInTime, checkOutTime),
-          project_name: record.ucc_id ? projectMap[record.ucc_id] || 'Project Not Found' : ''
+            if (record.check_out_time) {
+                const checkOutDate = new Date(record.check_out_time);
+                checkOutTime = new Date(
+                    attendanceDate.getFullYear(),
+                    attendanceDate.getMonth(),
+                    attendanceDate.getDate(),
+                    checkOutDate.getHours(),
+                    checkOutDate.getMinutes()
+                ).toISOString();
+            }
+
+            return {
+                ...record,
+                check_in_time: checkInTime,
+                check_out_time: checkOutTime,
+                total_hours: calculateTotalHours(checkInTime, checkOutTime),
+                project_name: record.ucc_id ? projectMap[record.ucc_id] || 'Project Not Found' : ''
+            };
+        });
+    
+        const dateWiseAttendance = {};
+        processedAttendance.forEach(record => {
+            const dateKey = new Date(record.attendance_date).toISOString().split('T')[0];
+            if (!dateWiseAttendance[dateKey]) {
+                dateWiseAttendance[dateKey] = [];
+            }
+            dateWiseAttendance[dateKey].push(record);
+        });
+
+        const statistics = {
+            total: processedAttendance.length,
+            present: processedAttendance.filter(record => record.check_in_time!=null).length,
+            absent: processedAttendance.filter(record => record.check_in_time==null).length,
+            total_working_hours: processedAttendance.reduce((total, record) => {
+                return total + (record.total_hours || 0);
+            }, 0).toFixed(2)
         };
-      });
-  
-      const dateWiseAttendance = groupAttendanceByDate2(processedAttendance);
-  
-      employeeWiseAttendance[employee.user_id] = {
-        employee_details: {
-          user_id: employee.user_id,
-          name: employee.name,
-          email: employee.email,
-          designation: employee.designation
-        },
-        statistics,
-        attendance: dateWiseAttendance
-      };
+    
+        employeeWiseAttendance[employee.user_id] = {
+            employee_details: {
+                user_id: employee.user_id,
+                name: employee.name,
+                email: employee.email,
+                designation: employee.designation
+            },
+            statistics,
+            attendance: dateWiseAttendance
+        };
     }
-  
+
+    // Calculate pagination metadata
+    const totalRecords = employeeUserIds.length;
+    const totalPages = Math.ceil(totalRecords / itemsPerPage);
+    
     return {
-      success: true,
-      message: 'Attendance details retrieved successfully',
-      status: STATUS_CODES.OK,
-      data: {
-        total_employees: totalEmployees,
-        employees: employeeWiseAttendance,
-        dateRange: {
-          startDate: dateRange.startDate,
-          endDate: dateRange.endDate,
+        success: true,
+        message: 'Attendance details retrieved successfully',
+        status: STATUS_CODES.OK,
+        data: {
+            total_employees: totalEmployees,
+            employees: employeeWiseAttendance,
+            dateRange: {
+                startDate: dateRange.startDate,
+                endDate: dateRange.endDate,
+            },
+            pagination: {
+                currentPage,
+                totalPages,
+                totalRecords,
+                limit: itemsPerPage,
+                hasNextPage: currentPage < totalPages,
+                hasPreviousPage: currentPage > 1
+            }
         },
-      },
     };
-  };
+};
 
   const calculateTotalWorkingHours = (attendance) => {
     return attendance.reduce((total, record) => {

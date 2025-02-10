@@ -51,34 +51,39 @@ export const getAttendanceOverview = async (req, res) => {
 }
 
 export const getAttendanceDetails = async (req, res) => {
-  const { month, year, project_id, tabValue , date,exports } = req.query;
-  const userId = req.user?.user_id;
-
-  if(!userId){
-    throw new APIError(STATUS_CODES.NOT_FOUND,RESPONSE_MESSAGES.ERROR.USER_ID_MISSING);
+  const { month, year, project_id, tabValue, date, exports, page = 1, limit = 10 } = req.query;
+  const userId = req.user.user_id;
+  if(tabValue!=TAB_VALUES.ME && tabValue!=TAB_VALUES.MYTEAM|| !tabValue)
+  {
+    return res.status(STATUS_CODES.BAD_REQUEST).json({ 
+      success: false,
+      status: STATUS_CODES.BAD_REQUEST,
+      message: RESPONSE_MESSAGES.ERROR.MISSING_TAB_VALUE
+    });
   }
 
   if (tabValue != TAB_VALUES.MYTEAM) {
     try {
-      const result = await getAttendanceService(userId, month, year, project_id);
-      if(exports =='true' && tabValue == TAB_VALUES.ME){
+      const result = await getAttendanceService(userId, month, year, project_id, parseInt(page), parseInt(limit));
+      
+      if(exports == 'true' && tabValue == TAB_VALUES.ME){
+        // Export logic remains the same
         const exportAttendanceRecords = [];
         for(const[date,records] of Object.entries(result.data.attendance)){
-         await records.forEach(record => {
+          await records.forEach(record => {
             exportAttendanceRecords.push({
               date,
-              attendaceStatus:record.status,
-              projectName:record.project_name,
-              totalHours:record.total_hours,
-              checkOutTime:record.check_out_time,
-              checkInTime:record.check_in_time
-  
-            })
-            
+              attendaceStatus: record.status,
+              projectName: record.project_name,
+              totalHours: record.total_hours,
+              checkOutTime: record.check_out_time,
+              checkInTime: record.check_in_time
+            });
           });
         }
-      return await exportToCSV(res,exportAttendanceRecords,"MyAttendace")
+        return await exportToCSV(res, exportAttendanceRecords, "MyAttendance");
       }
+      
       return res.status(STATUS_CODES.OK).json(result);
     } catch (error) {
       if (error instanceof APIError) {
@@ -95,12 +100,23 @@ export const getAttendanceDetails = async (req, res) => {
     }
   } else {
     try {
+      if (date) {
+      if (!isNaN(date)) {
+      if(date!=14)
+        {
+          return res.status(STATUS_CODES.BAD_REQUEST).json({
+            success: false,
+            status: STATUS_CODES.BAD_REQUEST,
+            message: RESPONSE_MESSAGES.ERROR.LAST_14_DAYS
+          }); 
+        }
+      }
+    }
       const employeesData = await getEmployeesHierarchy(userId);
       const totalEmployees = employeesData?.totalCount;
       const employeeUserIds = await getAttendanceForHierarchy(employeesData.hierarchy);
       
       const dateRange = calculateDateRange(month, year, date);
-      console.log('Date Range:', dateRange);
       const attendanceRecords = await getTeamAttendance(
         employeeUserIds,
         dateRange.startDate,
@@ -108,24 +124,27 @@ export const getAttendanceDetails = async (req, res) => {
         project_id
       );
       console.log(attendanceRecords);
+      
       const result = await processTeamAttendance(
         employeeUserIds, 
         attendanceRecords, 
         totalEmployees, 
-        dateRange
+        dateRange,
+        date,
+        parseInt(page),
+        parseInt(limit)
       );
       console.log('result=>>>>>>>>>>>>>>>>> ', result);
 
       return res.status(STATUS_CODES.OK).json(result);
-      
     } catch (error) {
+      // Error handling remains the same
       console.error('Error fetching team attendance:', error);
       return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
         success: false,
         status: STATUS_CODES.INTERNAL_SERVER_ERROR,
         message: error.message
-      });
-    }
+      });    }
   }
 };
 

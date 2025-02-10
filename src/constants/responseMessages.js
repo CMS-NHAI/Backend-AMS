@@ -19,6 +19,8 @@ export const RESPONSE_MESSAGES = {
     INVALID_TYPE: "Please provide a proper type value",
     ERROR_DB_FETCH: "Error Occured while fetching data from DB",
     CENTERLINES_ERROR: "Error Occured while fetching data from DB for centerlines.",
+    MISSING_TAB_VALUE : "TabValue must be me and myteam",
+    LAST_14_DAYS : "Date must be 14",
     USER_UCC_NOT_FOUND: "No ucc_ids found for the provided user_id",
     UNABLE_TO_FETCH_UCC: "Unable to fetch ucc_ids. Please try again later.",
     INVALID_LAT_LNG: "Invalid latitude or longitude provided",
