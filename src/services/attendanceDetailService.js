@@ -99,22 +99,35 @@
           gte: startDate,
           lte: endDate,
         },
-        is_active: true,
         ...(project_id && { ucc_id: project_id })
       },
       select: {
         attendance_id: true,
-        attendance_date: true,
-        status: true,
+        ucc_id: true,
         check_in_time: true,
-        check_out_time: true,
         check_in_lat: true,
-        check_in_lng: true, 
+        check_in_lng: true,
+        check_in_loc: true,
+        check_in_accuracy: true,
+        check_in_device_id: true,
+        check_in_ip_address: true,
+        check_in_remarks: true,
+        check_in_geofence_status: true,
+        check_out_time: true,
         check_out_lat: true,
         check_out_lng: true,
-        geofence_status: true,
-        is_online: true,
-        ucc_id: true
+        check_out_loc: true,
+        check_out_accuracy: true,
+        check_out_device_id: true,
+        check_out_ip_address: true,
+        check_out_remarks: true,
+        check_out_geofence_status: true,
+        created_by: true,
+        created_at: true,
+        updated_by: true,
+        updated_at: true,
+        attendance_date: true,
+        user_id: true
       },
       orderBy: {
         attendance_date: 'desc',
@@ -130,7 +143,6 @@
           gte: startDate,
           lte: endDate,
         },
-        is_active: true,
         ...(project_id && { ucc_id: project_id })
       }
     });
@@ -178,6 +190,9 @@
   const processAttendanceRecords = (records, projectMap) => {
     return records.map(record => {
       const attendanceDate = new Date(record.attendance_date);
+      
+      // Determine status based on check_in_time
+      const status = record.check_in_time ? 'PRESENT' : 'ABSENT';
     
       // Combine attendance date with check in/out times
       const checkInTime = record.check_in_time ? new Date(
@@ -196,9 +211,9 @@
         new Date(record.check_out_time).getMinutes()
       ).toISOString() : null;
     
-  
       return {
         ...record,
+        status, // Add derived status
         check_in_time: checkInTime,
         check_out_time: checkOutTime,
         total_hours: calculateTotalHours(record.check_in_time, record.check_out_time),
@@ -224,9 +239,8 @@
   const calculateStatistics = (records) => {
     return {
       total: records.length,
-      present: records.filter(record => record.status === 'PRESENT').length,
-      absent: records.filter(record => record.status === 'ABSENT').length,
-      leave: records.filter(record => record.status === 'LEAVE').length,
+      present: records.filter(record => record.chek_in_time).length,
+      absent: records.filter(record => record.check_in_time==null).length,
       total_working_hours: Math.round(records.reduce((sum, record) => sum + record.total_hours, 0) * 100) / 100,
     }
   }
@@ -390,9 +404,8 @@
 
         const statistics = {
             total: processedAttendance.length,
-            present: processedAttendance.filter(record => record.status === 'PRESENT').length,
-            absent: processedAttendance.filter(record => record.status === 'ABSENT').length,
-            leave: processedAttendance.filter(record => record.status === 'LEAVE').length,
+            present: processedAttendance.filter(record => record.check_in_time!=null).length,
+            absent: processedAttendance.filter(record => record.check_in_time==null).length,
             total_working_hours: processedAttendance.reduce((total, record) => {
                 return total + (record.total_hours || 0);
             }, 0).toFixed(2)
