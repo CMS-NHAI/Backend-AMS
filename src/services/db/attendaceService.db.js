@@ -27,8 +27,7 @@ export const getTeamAttendance = async (employeeUserIds, startDate, endDate, pro
       attendance_id: true,
       user_id: true,
       attendance_date: true,
-      status: true,
-      check_in_time: true,
+      check_in_time: true,git 
       check_out_time: true,
       check_in_lat: true,
       check_in_lng: true,
