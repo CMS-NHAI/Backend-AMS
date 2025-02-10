@@ -29,7 +29,7 @@ export const getAttendanceOverviewService = async (
     throw new APIError(STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.MISSING_FILTER)
   }
 
-  if (!tabValue) {
+  if (!tabValue || !["me", "myteam"].includes(tabValue)) {
       throw new APIError(STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.MISSING_TAB_VALUE )
   }
 
@@ -70,9 +70,10 @@ export const getAttendanceOverviewService = async (
 
   const totalDays = getTotalWorkingDays(filter).length
   const presentDays = attendanceRecords.filter((record) =>
-    [ATTENDANCE_STATUS.PRESENT, ATTENDANCE_STATUS.LATE].includes(
-      record.status.toUpperCase()
-    )
+    // [ATTENDANCE_STATUS.PRESENT, ATTENDANCE_STATUS.LATE].includes(
+    //   record.status.toUpperCase()
+    // )
+    record.check_in_time !== null
   ).length
   const absentDays = totalDays - presentDays
   const attendancePercent = totalDays
@@ -121,4 +122,23 @@ const extractUserIds = async (users, userIds = []) => {
     }
   })
   return userIds
+}
+
+export const getMarkInAttendanceCountService=async ( userId,date,tabValue)=>{
+  if (tabValue === TAB_VALUES.MYTEAM) {
+    const employeesData = await getEmployeesHierarchy(userId)
+    console.log(employeesData,"employeesData")
+    let totalEmployees =employeesData?.totalCount;
+    const employeeUserIds = await getAttendanceForHierarchy(
+      employeesData.hierarchy
+    )
+    console.log(employeeUserIds,"employeeUserIds");
+    attendanceRecords = await getTeamAttendance(
+      employeeUserIds,
+      startDate,
+      endDate
+    )
+    console.log(attendanceRecords,"attendanceRecords")
+    
+  }
 }
