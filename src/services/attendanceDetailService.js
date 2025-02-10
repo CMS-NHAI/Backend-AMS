@@ -253,18 +253,22 @@
     //   return acc
     // }, {})
 
-    return records.map(record => ({
-      date: record.attendance_date.toISOString().split('T')[0],
-      records: [record]
-  })).reduce((acc, curr) => {
-      const existingDate = acc.find(item => item.date === curr.date);
-      if (existingDate) {
-          existingDate.records.push(...curr.records);
-      } else {
-          acc.push(curr);
-      }
-      return acc;
-  }, []);
+  //   return records.map(record => ({
+  //     date: record.attendance_date.toISOString().split('T')[0],
+  //     records: [record]
+  // })).reduce((acc, curr) => {
+  //     const existingDate = acc.find(item => item.date === curr.date);
+  //     if (existingDate) {
+  //         existingDate.records.push(...curr.records);
+  //     } else {
+  //         acc.push(curr);
+  //     }
+  //     return acc;
+  // }, []);
+
+  return records.sort((a, b) => 
+    new Date(b.attendance_date) - new Date(a.attendance_date)
+);
   }
 
   const getEmptyResponse = (dateRange) => {
