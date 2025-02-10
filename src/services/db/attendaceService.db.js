@@ -19,7 +19,7 @@ export const getTeamAttendance = async (employeeUserIds, startDate, endDate, pro
       },
       attendance_date: {
         gte: startDate,
-        lte: endDate
+        lt: endDate
       },
       ...(project_id && { ucc_id: project_id }) 
     },

@@ -17,10 +17,10 @@
 import Joi from 'joi'
 
 // Custom Joi validation middleware
-export const validate = (schema) => {
+export const validate = (schema,property = 'body') => {
   return (req, res, next) => {
     // Validate request body by default, you can modify for query or params validation as well
-    const { error } = schema.validate(req.body)
+    const { error } = schema.validate(req[property])
 
     if (error) {
       return res.status(400).json({
