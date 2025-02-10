@@ -113,9 +113,10 @@ export const getAttendanceDetails = async (req, res) => {
       }
     }
       const employeesData = await getEmployeesHierarchy(userId);
+      console.log('employees data ', employeesData);
       const totalEmployees = employeesData?.totalCount;
       const employeeUserIds = await getAttendanceForHierarchy(employeesData.hierarchy);
-      
+      console.log('employee user ids ', employeeUserIds);
       const dateRange = calculateDateRange(month, year, date);
       const attendanceRecords = await getTeamAttendance(
         employeeUserIds,
@@ -123,7 +124,7 @@ export const getAttendanceDetails = async (req, res) => {
         dateRange.endDate,
         project_id
       );
-      console.log(attendanceRecords);
+      console.log("attendance records " , attendanceRecords);
       
       const result = await processTeamAttendance(
         employeeUserIds, 
