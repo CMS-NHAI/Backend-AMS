@@ -8,8 +8,8 @@ export const RESPONSE_MESSAGES = {
 
   ERROR: {
     USER_ID_MISSING: 'UserId is required.',
-    MISSING_FILTER: 'filter is required.',
-    MISSING_TAB_VALUE: 'Tabvalue is not provided',
+    MISSING_FILTER: 'Day is required.',
+    MISSING_TAB_VALUE: 'Please select tab value as me or myteam',
     INVALIDFILTER: 'Invalid filter provided.',
     NOATTENDANCERECORDS: 'No attendance records found for the given range.',
     SERVERERROR: 'An error occurred while fetching attendance analytics.',
@@ -30,6 +30,7 @@ export const RESPONSE_MESSAGES = {
       NO_TEAM_MEMBERS: "No team members found to fetch data.",
       NO_UCC_FOUND: "No UCCs found in the database for the given user.",
       OUTSIDE_WORK_AREA: "You are out of your work area",
-      INSIDE_WORK_AREA: "You are within your work area"
+      INSIDE_WORK_AREA: "You are within your work area",
+      ATTENDANCE_RECORDS_FETCHED_SUCCESSFULLY:'Attendance Count fetched Successfully'
   },
 }

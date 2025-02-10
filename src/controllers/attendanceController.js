@@ -6,7 +6,7 @@
  */
 
 import { STATUS_CODES } from '../constants/statusCodeConstants.js'
-import { getAttendanceOverviewService } from '../services/attendanceService.js'
+import { getAttendanceOverviewService ,getMarkInAttendanceCountService} from '../services/attendanceService.js'
 import { getAttendanceService } from '../services/attendanceDetailService.js'
 import { getEmployeesHierarchy, getAttendanceForHierarchy} from '../services/attendanceService.js'
 import { getTeamAttendance } from '../services/db/attendaceService.db.js';
@@ -30,13 +30,14 @@ export const getAttendanceOverview = async (req, res) => {
   const { filter, tabValue } = req.query
   // console.log(req,"request");
   const userId = req.user?.user_id
+  
   try {
     const result = await getAttendanceOverviewService(userId, filter, tabValue)
 
     res.status(STATUS_CODES.OK).json({
       success: true,
       message:RESPONSE_MESSAGES.SUCCESS.ANALYTICSFETCHED,
-      ...result,
+      data:{...result},
     })
   } catch (error) {
     if (error instanceof APIError) {
@@ -51,7 +52,11 @@ export const getAttendanceOverview = async (req, res) => {
 
 export const getAttendanceDetails = async (req, res) => {
   const { month, year, project_id, tabValue , date,exports } = req.query;
-  const userId = req.user.user_id;
+  const userId = req.user?.user_id;
+
+  if(!userId){
+    throw new APIError(STATUS_CODES.NOT_FOUND,RESPONSE_MESSAGES.ERROR.USER_ID_MISSING);
+  }
 
   if (tabValue != TAB_VALUES.MYTEAM) {
     try {
@@ -109,7 +114,7 @@ export const getAttendanceDetails = async (req, res) => {
         totalEmployees, 
         dateRange
       );
-      console.log('result ', result);
+      console.log('result=>>>>>>>>>>>>>>>>> ', result);
 
       return res.status(STATUS_CODES.OK).json(result);
       
@@ -178,15 +183,50 @@ export const getAllProjects = async (req, res) => {
   }
 };
 
+export const getTeamAttendanceCount = async(req,res)=>{
+  const { date, tabValue } = req.query;
+  try {
+  console.log(date,tabValue,"tabvalue")
+  const userId = req.user?.user_id;
 
- const getTotalWorkingDays = (filterDays) => {
-  let days = [];
-  for (let i = 1; i <= parseInt(filterDays); i++) {
-    let date = new Date();
-    date.setDate(date.getDate() - i);
-    if (!isSunday(date)) {
-      days.push(date);
-    }
+  if(!userId){
+    throw new APIError(STATUS_CODES.NOT_FOUND,RESPONSE_MESSAGES.ERROR.USER_ID_MISSING);
   }
-  return days;
+    const result = await getMarkInAttendanceCountService(userId, date, tabValue)
+
+    res.status(STATUS_CODES.OK).json({
+      success: true,
+      message:RESPONSE_MESSAGES.SUCCESS.ATTENDANCE_RECORDS_FETCHED_SUCCESSFULLY,
+      data,
+    })
+  } catch (error) {
+    if (error instanceof APIError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message, // Send the error message
+      });
+    }
+    res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({success:false, message: error.message })
+  }
+
+
+
+
+  
 }
+
+
+//  const getTotalWorkingDays = (filterDays) => {
+//   let days = [];
+//   for (let i = 1; i <= parseInt(filterDays); i++) {
+//     let date = new Date();
+//     date.setDate(date.getDate() - i);
+//     if (!isSunday(date)) {
+//       days.push(date);
+//     }
+//   }
+//   return days;
+// }
+
+
+
