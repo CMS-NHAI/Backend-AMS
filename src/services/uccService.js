@@ -22,7 +22,7 @@ async function fetchUccIdsForUser(userId) {
 
         if (attendance.length === 0) {
             console.log("Failed no attendance found for nearest UCC");
-            throw new APIError(RESPONSE_MESSAGES.ERROR.UCC_NOT_FOUND);
+            throw new APIError(RESPONSE_MESSAGES.SUCCESS.NO_UCC_FOUND);
         }
 
         const uccIds = attendance.map(att => att.ucc_id);
