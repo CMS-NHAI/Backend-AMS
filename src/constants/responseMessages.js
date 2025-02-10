@@ -31,6 +31,7 @@ export const RESPONSE_MESSAGES = {
       NO_UCC_FOUND: "No UCCs found in the database for the given user.",
       OUTSIDE_WORK_AREA: "You are out of your work area",
       INSIDE_WORK_AREA: "You are within your work area",
-      ATTENDANCE_RECORDS_FETCHED_SUCCESSFULLY:'Attendance Count fetched Successfully'
+      ATTENDANCE_RECORDS_FETCHED_SUCCESSFULLY:'Attendance Count fetched Successfully',
+      NO_UCC_FOR_USERID: "No UCC found for the given user's userID."
   },
 }
