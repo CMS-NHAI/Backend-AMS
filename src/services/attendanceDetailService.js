@@ -266,9 +266,10 @@
   //     return acc;
   // }, []);
 
-  return records.sort((a, b) => 
-    new Date(b.attendance_date) - new Date(a.attendance_date)
-);
+//   return records.sort((a, b) => 
+//     new Date(b.attendance_date) - new Date(a.attendance_date)
+// );
+
   }
 
   const getEmptyResponse = (dateRange) => {
