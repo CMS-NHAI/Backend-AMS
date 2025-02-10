@@ -244,14 +244,14 @@
   }
 
   const groupAttendanceByDate = (records) => {
-    // return records.reduce((acc, record) => {
-    //   const date = record.attendance_date.toISOString().split('T')[0]
-    //   if (!acc[date]) {
-    //     acc[date] = []
-    //   }
-    //   acc[date].push(record)
-    //   return acc
-    // }, {})
+    return records.reduce((acc, record) => {
+      const date = record.attendance_date.toISOString().split('T')[0]
+      if (!acc[date]) {
+        acc[date] = []
+      }
+      acc[date].push(record)
+      return acc
+    }, {})
 
   //   return records.map(record => ({
   //     date: record.attendance_date.toISOString().split('T')[0],
@@ -266,9 +266,10 @@
   //     return acc;
   // }, []);
 
-  return records.sort((a, b) => 
-    new Date(b.attendance_date) - new Date(a.attendance_date)
-);
+//   return records.sort((a, b) => 
+//     new Date(b.attendance_date) - new Date(a.attendance_date)
+// );
+
   }
 
   const getEmptyResponse = (dateRange) => {
