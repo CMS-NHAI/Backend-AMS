@@ -23,6 +23,7 @@ export const fetchlocationBydate = async (req, res) => {
         });
 
     } catch (err) {
+        console.log("Error: ", err);
         logger.error({
             message: RESPONSE_MESSAGES.ERROR.REQUEST_PROCESSING_ERROR,
             error: err,
@@ -51,10 +52,7 @@ export const fetchNearestProject = async (req, res) => {
             data: uccDetails
         });
     } catch (err) {
-        res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
-            success: false,
-            message: err.message
-        })
+        console.log("Fetch nearest UCC error:: ", err);
         logger.error({
             message: RESPONSE_MESSAGES.ERROR.REQUEST_PROCESSING_ERROR,
             error: err,
@@ -62,5 +60,9 @@ export const fetchNearestProject = async (req, res) => {
             method: req.method,
             time: new Date().toISOString(),
         });
+        res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
+            success: false,
+            message: err.message
+        })
     }
 }
