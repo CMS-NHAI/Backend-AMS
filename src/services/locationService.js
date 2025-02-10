@@ -32,6 +32,7 @@ export const getLocationDetails = async (req, res) => {
 
     try {
         if (type === STRING_CONSTANT.SINGLE_TYPE) {
+            console.log("Inside ME Flow..");
             const attendanceData = await prisma.$queryRaw`
                 SELECT 
                 attendance_id,
@@ -56,37 +57,47 @@ export const getLocationDetails = async (req, res) => {
                 AND attendance_date = CAST(${date} AS DATE) AND ucc_id = ${uccNo};
             `;
 
+            console.log("Attendance Data fetched successfully..");
+
             const stretchLineData = await getGisData(uccNo);
 
+            console.log("GIS data fetched dt:: ");
+
             if (attendanceData.length > 0) {
+                console.log("Attt data len is > 0..");
                 attendanceData[0].check_out_loc = JSON.parse(attendanceData[0].check_out_loc);
                 attendanceData[0].check_in_loc = JSON.parse(attendanceData[0].check_in_loc);
 
                 await calculateAndAddDistance(attendanceId, date, uccNo, attendanceData);
+
+                console.log("Distance added successfully:::");
             }
 
             return { attendanceData, stretchLineData };
 
         } else if (type === STRING_CONSTANT.MULTIPLE_TYPE) {
-            const attendanceData = await getAttendanceLocationForTeam(userId, date, uccNo);
+            console.log("Inside multiple/ MY flow:");
+            // const attendanceData = await getAttendanceLocationForTeam(userId, date, uccNo);
 
-            if (attendanceData.length > 0) {
-                attendanceData.map(data => {
-                    data.check_out_loc = JSON.parse(data.check_out_loc);
-                    data.check_in_loc = JSON.parse(data.check_in_loc);
-                });
-            } else {
-                res.status(200).json({ status: true, data: { message: RESPONSE_MESSAGES.SUCCESS.NO_TEAM_MEMBERS } })
-            }
+            // if (attendanceData.length > 0) {
+            //     attendanceData.map(data => {
+            //         data.check_out_loc = JSON.parse(data.check_out_loc);
+            //         data.check_in_loc = JSON.parse(data.check_in_loc);
+            //     });
+            // } else {
+            //     res.status(200).json({ status: true, data: { message: RESPONSE_MESSAGES.SUCCESS.NO_TEAM_MEMBERS } })
+            // }
 
 
-            const stretchLineData = await getGisData(uccNo);
+            // const stretchLineData = await getGisData(uccNo);
 
-            return { attendanceData, stretchLineData };
+            // return { attendanceData, stretchLineData };
+            return {message: "Commented"};
         } else {
             return res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.INVALID_TYPE });
         }
     } catch (error) {
+        console.log("Location Service Errorr:: ", error);
         logger.error({
             message: RESPONSE_MESSAGES.ERROR.ERROR_DB_FETCH,
             error: error,
@@ -107,45 +118,45 @@ export const getLocationDetails = async (req, res) => {
  * @returns Team members attendance location 
  */
 const getAttendanceLocationForTeam = async (parentId, date, uccNo) => {
-    const parentIdCheckValue = await prisma.user_master.findUnique({
-        where: {
-            user_id: parentId
-        }
-    });
+    // const parentIdCheckValue = await prisma.user_master.findUnique({
+    //     where: {
+    //         user_id: parentId
+    //     }
+    // });
 
-    if (!parentIdCheckValue) {
-        throw new LocationServiceError("User id is not available.", STATUS_CODES.BAD_REQUEST);
-    }
+    // if (!parentIdCheckValue) {
+    //     throw new LocationServiceError("User id is not available.", STATUS_CODES.BAD_REQUEST);
+    // }
 
-    const teamUserIds = await getTeamUserIds(parentId, new Set());
+    // const teamUserIds = await getTeamUserIds(parentId, new Set());
 
-    if (teamUserIds.length > 0) {
+    // if (teamUserIds.length > 0) {
 
-        const teamLocationDetails = await prisma.$queryRaw`
-        SELECT 
-            attendance_id,
-            user_id,
-            attendance_date,
-            status,
-            check_in_time,
-            check_in_lat, 
-            check_in_lng, 
-            ST_AsGeoJSON(check_in_loc) AS check_in_loc, 
-            check_out_time,
-            check_out_lat, 
-            check_out_lng, 
-            ST_AsGeoJSON(check_out_loc) AS check_out_loc, 
-            accuracy, 
-            geofence_status 
-        FROM am_attendance 
-        WHERE user_id IN (${Prisma.join(teamUserIds)})
-        AND attendance_date = CAST(${date} AS DATE) AND ucc_id = ${uccNo};
-    `;
+    //     const teamLocationDetails = await prisma.$queryRaw`
+    //     SELECT 
+    //         attendance_id,
+    //         user_id,
+    //         attendance_date,
+    //         status,
+    //         check_in_time,
+    //         check_in_lat, 
+    //         check_in_lng, 
+    //         ST_AsGeoJSON(check_in_loc) AS check_in_loc, 
+    //         check_out_time,
+    //         check_out_lat, 
+    //         check_out_lng, 
+    //         ST_AsGeoJSON(check_out_loc) AS check_out_loc, 
+    //         accuracy, 
+    //         geofence_status 
+    //     FROM am_attendance 
+    //     WHERE user_id IN (${Prisma.join(teamUserIds)})
+    //     AND attendance_date = CAST(${date} AS DATE) AND ucc_id = ${uccNo};
+    // `;
 
-        return teamLocationDetails;
-    } else {
-        return [];
-    }
+    //     return teamLocationDetails;
+    // } else {
+    //     return [];
+    // }
 }
 
 /**

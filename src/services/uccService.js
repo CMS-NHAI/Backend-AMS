@@ -21,11 +21,34 @@ async function fetchUccIdsForUser(userId) {
         });
 
         if (attendance.length === 0) {
+            console.log("Failed no attendance found for nearest UCC");
             throw new APIError(RESPONSE_MESSAGES.ERROR.UCC_NOT_FOUND);
         }
 
-        return attendance.map(att => att.ucc_id);
+        const uccIds = attendance.map(att => att.ucc_id);
+        console.log("ATT UCC :::: ");
+
+        const uccProjectNames = await prisma.ucc_master.findMany({
+            where: {
+                permanent_ucc: {
+                    in: uccIds,
+                },
+                is_deleted: false,
+            },
+            select: {
+                permanent_ucc: true,
+                project_name: true,
+            },
+        });
+
+        console.log("Project names based on UCC fetched successfully.");
+        // Return the ucc_id and project_name pairs.
+        return uccProjectNames.map(row => ({
+            ucc_id: row.permanent_ucc,
+            project_name: row.project_name
+        }));
     } catch (error) {
+        console.log("EROR nearest UCC :: ", error);
         logger.error({
             message: RESPONSE_MESSAGES.ERROR.UNABLE_TO_FETCH_UCC,
             error: error,
@@ -50,34 +73,49 @@ export async function getUccDetails(lat, long, userId) {
             throw new APIError(RESPONSE_MESSAGES.ERROR.INVALID_LAT_LNG);
         }
 
-        const uccIds = await fetchUccIdsForUser(userId);
+        const uccs = await fetchUccIdsForUser(userId);
 
-        if (uccIds.length === 0) {
+        if (uccs.length === 0) {
             return {
+                statusCode: 404,
+                message: "No UCCs found for the user.",
                 allUccs: [],
                 nearestUcc: null,
-                message: RESPONSE_MESSAGES.SUCCESS.NO_UCC_FOUND,
+                message: RESPONSE_MESSAGES.SUCCESS.NO_UCC_FOUND
+
             };
         }
 
+        const uccIds = uccs.map(ucc => ucc.ucc_id);
+
         const result = await prisma.$queryRaw`
-      SELECT 
-        ogc_fid, 
-        ucc, 
-        public.ST_Distance(public.ST_SetSRID(public.ST_MakePoint(${parseFloat(lat)}, ${parseFloat(long)}), 4326), wkb_geometry) AS distance_in_meters
-      FROM 
-        nhai_gis.nhaicenterlines
-      WHERE 
-        ucc IN (${Prisma.join(uccIds)});
-    `;
+            SELECT 
+                ogc_fid, 
+                cs.ucc, 
+                public.ST_Distance(public.ST_SetSRID(public.ST_MakePoint(${parseFloat(lat)}, ${parseFloat(long)}), 4326), cs.wkb_geometry) AS distance_in_meters,
+                um.project_name
+            FROM 
+                nhai_gis.nhaicenterlines cs
+            LEFT JOIN
+                tenant_nhai.ucc_master um
+            ON
+                cs.ucc = um.permanent_ucc
+            WHERE 
+                cs.ucc IN (${Prisma.join(uccIds)});
+        `;
+
 
         if (result.length === 0) {
+            console.log("Unable to calculate distance.");
             return {
+                statusCode: 404,
                 allUccs: uccIds,
                 nearestUcc: null,
                 message: RESPONSE_MESSAGES.SUCCESS.NO_UCC_FOUND,
             };
         }
+
+        console.log("Distance for UCC is fetched Successfully..");
 
         const sortedUccs = result.sort((a, b) => a.distance_in_meters - b.distance_in_meters);
 
@@ -88,12 +126,14 @@ export async function getUccDetails(lat, long, userId) {
             : RESPONSE_MESSAGES.SUCCESS.INSIDE_WORK_AREA;
 
         return {
-            allUccs: uccIds,
+            statusCode: 200,
+            allUccs: uccs,
             nearestUcc: nearestUcc,
             message: message,
         };
 
     } catch (error) {
+        console.log("Nearest UCC Error :: ", error);
         logger.error({
             message: RESPONSE_MESSAGES.ERROR.UNABLE_TO_FETCH_NEAREST_UCC,
             error: error,
