@@ -46,7 +46,7 @@ export const fetchNearestProject = async (req, res) => {
         const userId = req.user.user_id;
         const { userLat, userLng } = req.query
 
-        const uccDetails = await getUccDetails(userLat, userLng, userId);
+        const uccDetails = await getUccDetails(userLat, userLng, userId, req);
         res.status(STATUS_CODES.OK).json({
             success: true,
             data: uccDetails

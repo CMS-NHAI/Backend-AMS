@@ -1,16 +1,27 @@
+/**
+ * @author Deepak
+ */
 import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prismaClient.js";
 import { RESPONSE_MESSAGES } from "../constants/responseMessages.js";
 import APIError from "../utils/apiError.js";
 import { logger } from "../utils/logger.js";
+import { STATUS_CODES } from "../constants/statusCodeConstants.js";
 
 /**
  * Fetches all ucc_ids associated with the given user_id.
  * @param {number} userId - The ID of the user.
  * @returns {Promise<string[]>} - A list of ucc_id strings.
  */
-async function fetchUccIdsForUser(userId) {
+async function fetchUccIdsForUser(userId, req) {
     try {
+        logger.info({
+            message: 'Fetching UCC IDs for the given user.',
+            method: req.method,
+            url: req.url,
+            status: 'success',
+            time: new Date().toISOString(),
+        });
         const attendance = await prisma.am_attendance.findMany({
             where: {
                 user_id: parseInt(userId),
@@ -21,12 +32,17 @@ async function fetchUccIdsForUser(userId) {
         });
 
         if (attendance.length === 0) {
-            console.log("Failed no attendance found for nearest UCC");
-            throw new APIError(RESPONSE_MESSAGES.SUCCESS.NO_UCC_FOUND);
+            logger.info({
+                message: "No Ucc found for the given user's user id.",
+                method: req.method,
+                url: req.url,
+                status: 'success',
+                time: new Date().toISOString(),
+            });
+            throw new APIError(STATUS_CODES.NOT_FOUND, RESPONSE_MESSAGES.SUCCESS.NO_UCC_FOUND);
         }
 
         const uccIds = attendance.map(att => att.ucc_id);
-        console.log("ATT UCC :::: ");
 
         const uccProjectNames = await prisma.ucc_master.findMany({
             where: {
@@ -41,14 +57,20 @@ async function fetchUccIdsForUser(userId) {
             },
         });
 
-        console.log("Project names based on UCC fetched successfully.");
+        logger.info({
+            message: "Project names based on UCC fetched successfully.",
+            method: req.method,
+            url: req.url,
+            status: 'success',
+            time: new Date().toISOString(),
+        });
+
         // Return the ucc_id and project_name pairs.
         return uccProjectNames.map(row => ({
             ucc_id: row.permanent_ucc,
             project_name: row.project_name
         }));
     } catch (error) {
-        console.log("EROR nearest UCC :: ", error);
         logger.error({
             message: RESPONSE_MESSAGES.ERROR.UNABLE_TO_FETCH_UCC,
             error: error,
@@ -56,7 +78,7 @@ async function fetchUccIdsForUser(userId) {
             method: req.method,
             time: new Date().toISOString(),
         });
-        throw new APIError(RESPONSE_MESSAGES.ERROR.UNABLE_TO_FETCH_UCC);
+        throw new APIError(STATUS_CODES.NOT_FOUND, error.message);
     }
 }
 
@@ -67,18 +89,18 @@ async function fetchUccIdsForUser(userId) {
  * @param {number} userId - The ID of the user.
  * @returns {Promise<Object>} - Returns an object containing all UCCs, nearest UCC, and message.
  */
-export async function getUccDetails(lat, long, userId) {
+export async function getUccDetails(lat, long, userId, req) {
     try {
         if (isNaN(lat) || isNaN(long)) {
-            throw new APIError(RESPONSE_MESSAGES.ERROR.INVALID_LAT_LNG);
+            throw new APIError(STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.INVALID_LAT_LNG);
         }
 
-        const uccs = await fetchUccIdsForUser(userId);
+        const uccs = await fetchUccIdsForUser(userId, req);
 
         if (uccs.length === 0) {
             return {
                 statusCode: 404,
-                message: "No UCCs found for the user.",
+                message: RESPONSE_MESSAGES.SUCCESS.NO_UCC_FOR_USERID,
                 allUccs: [],
                 nearestUcc: null,
                 message: RESPONSE_MESSAGES.SUCCESS.NO_UCC_FOUND
@@ -106,7 +128,7 @@ export async function getUccDetails(lat, long, userId) {
 
 
         if (result.length === 0) {
-            console.log("Unable to calculate distance.");
+
             return {
                 statusCode: 404,
                 allUccs: uccIds,
@@ -115,7 +137,13 @@ export async function getUccDetails(lat, long, userId) {
             };
         }
 
-        console.log("Distance for UCC is fetched Successfully..");
+        logger.info({
+            message: "Distance for given UCC is fetched Successfully..",
+            method: req.method,
+            url: req.url,
+            status: 'success',
+            time: new Date().toISOString(),
+        });
 
         const sortedUccs = result.sort((a, b) => a.distance_in_meters - b.distance_in_meters);
 
@@ -133,7 +161,6 @@ export async function getUccDetails(lat, long, userId) {
         };
 
     } catch (error) {
-        console.log("Nearest UCC Error :: ", error);
         logger.error({
             message: RESPONSE_MESSAGES.ERROR.UNABLE_TO_FETCH_NEAREST_UCC,
             error: error,
@@ -141,7 +168,7 @@ export async function getUccDetails(lat, long, userId) {
             method: req.method,
             time: new Date().toISOString(),
         });
-        throw new APIError(RESPONSE_MESSAGES.ERROR.UNABLE_TO_FETCH_NEAREST_UCC);
+        throw new APIError(STATUS_CODES.NOT_FOUND, error.message);
     }
 }
 
