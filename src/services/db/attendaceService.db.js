@@ -5,7 +5,6 @@ export const getUserAttendance = async (userId, startDate, endDate) => {
   return await prisma.am_attendance.findMany({
     where: {
       user_id: userId,
-      is_active: true,
       attendance_date: { gte: startDate, lt: endDate },
     },
   })
@@ -25,18 +24,31 @@ export const getTeamAttendance = async (employeeUserIds, startDate, endDate, pro
     },
     select: {
       attendance_id: true,
-      user_id: true,
-      attendance_date: true,
-      status: true,
-      check_in_time: true,
-      check_out_time: true,
-      check_in_lat: true,
-      check_in_lng: true,
-      check_out_lat: true,
-      check_out_lng: true,
-      geofence_status: true,
-      is_online: true,
-      ucc_id: true
+        ucc_id: true,
+        check_in_time: true,
+        check_in_lat: true,
+        check_in_lng: true,
+        check_in_loc: true,
+        check_in_accuracy: true,
+        check_in_device_id: true,
+        check_in_ip_address: true,
+        check_in_remarks: true,
+        check_in_geofence_status: true,
+        check_out_time: true,
+        check_out_lat: true,
+        check_out_lng: true,
+        check_out_loc: true,
+        check_out_accuracy: true,
+        check_out_device_id: true,
+        check_out_ip_address: true,
+        check_out_remarks: true,
+        check_out_geofence_status: true,
+        created_by: true,
+        created_at: true,
+        updated_by: true,
+        updated_at: true,
+        attendance_date: true,
+        user_id: true
     },
     orderBy: {
       attendance_date: 'desc'
