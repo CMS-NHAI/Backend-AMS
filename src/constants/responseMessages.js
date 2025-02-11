@@ -23,6 +23,7 @@ export const RESPONSE_MESSAGES = {
   },
   SUCCESS: {
       ANALYTICSFETCHED: 'Attendance analytics fetched successfully.',
-      NO_TEAM_MEMBERS: "No team members found to fetch data."
+      NO_TEAM_MEMBERS: "No team members found to fetch data.",
+      ATTENDACE_MARKED_SUCCESSFULLY: "You've Successfully Marked-in"
   },
 }

@@ -9,7 +9,7 @@ import { STATUS_CODES } from '../constants/statusCodeConstants.js'
 import { getAttendanceOverviewService } from '../services/attendanceService.js'
 import { getAttendanceService } from '../services/attendanceDetailService.js'
 import { getEmployeesHierarchy, getAttendanceForHierarchy } from '../services/attendanceService.js'
-import { getTeamAttendance } from '../services/db/attendaceService.db.js';
+import { getTeamAttendance,saveAttendance } from '../services/db/attendaceService.db.js';
 import { calculateDateRange } from '../services/attendanceDetailService.js';
 import { processTeamAttendance } from '../services/attendanceDetailService.js';
 import APIError from '../utils/apiError.js';
@@ -194,15 +194,43 @@ const getTotalWorkingDays = (filterDays) => {
 export const markAttendance = async (req, res) => {
   try {
     const userId = req.user.user_id;
-    const { faceauthstatus } = req.body.attendanceData
+    if(!userId){
+      throw new APIError(STATUS_CODES.UNAUTHORIZED, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING)
+    }
+    const { ucc,faceauthstatus, checkinTime, checkinLat,checkinLon , checkinDeviceId, checkinIpAddress, checkinRemarks, checkinDate,checkInGeofenceStatus	} = req.body.attendanceData[0]
     if (faceauthstatus == "no") {
       throw new APIError(STATUS_CODES.NOT_ACCEPTABLE, RESPONSE_MESSAGES.ERROR.INVALID_FACEAUTHSTATUS)
     }
+    const markInAttendancedata = {
+      ucc_id:ucc,
+      check_in_time:new Date(checkinTime.replace(' ', 'T')).toISOString(),
+      check_in_lat:checkinLat,
+      check_in_lng:checkinLon,
+      check_in_device_id:checkinDeviceId,
+      check_in_ip_address:checkinIpAddress,
+      check_in_remarks:checkinRemarks,
+      attendance_date:checkinDate,
+      check_in_geofence_status:checkInGeofenceStatus,
+      created_by:userId,
+      created_at:new Date()
+    }
+    await saveAttendance(markInAttendancedata)
+
+    return res.status(STATUS_CODES.OK).json({
+      success: true,
+      message:RESPONSE_MESSAGES.SUCCESS.ATTENDACE_MARKED_SUCCESSFULLY,
+      data:{
+        checkinTime,
+        checkinLat,
+        checkinLon
+      }
+    })
   } catch (error) {
     if (error instanceof APIError) {
       return res.status(error.statusCode).json({
         success: false,
         message: error.message,
+        data:result
       });
     }
     else {

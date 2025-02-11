@@ -12,7 +12,7 @@ export const markAttendaceSchema = Joi.object({
           'any.required': 'Checkin Date is required.'
         }),
       checkinTime: Joi.string()
-        .pattern(/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/)
+        .pattern(/^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) (\d{2}):([0-5]\d):([0-5]\d)$/)
         .required()
         .messages({
           'string.empty': 'Checkin Time should not be empty.',
@@ -20,22 +20,23 @@ export const markAttendaceSchema = Joi.object({
           'any.required': 'Checkin Date is required.'
         }),
       checkinRemarks: Joi.string().allow("").optional(),
-
+      checkInGeofenceStatus:Joi.string().valid("INSIDE","OUTSIDE").required().messages({
+        "any.only": "faceauthstatus must be 'yes' or 'no'",
+        "any.required": "Geofence status is required",
+      }),
       project: Joi.string().required(),
 
       ucc: Joi.string().required(),
 
-      stretch: Joi.string().required(),
+      checkinLat: Joi.number().required().messages({
+        'number.base': 'Value must be a number.',
+        'any.required': 'Float value is required.',
+      }),
 
-      checkinLat: Joi.string()
-        .pattern(/^[-+]?([1-8]?\d(\.\d+)?|90(\.0+)?)$/)
-        .required()
-        .messages({ "string.pattern.base": "checkinLat must be a valid latitude" }),
-
-      checkinLon: Joi.string()
-        .pattern(/^[-+]?((1[0-7]\d)|([1-9]?\d))(\.\d+)?|180(\.0+)?$/)
-        .required()
-        .messages({ "string.pattern.base": "checkinLon must be a valid longitude" }),
+      checkinLon: Joi.number().required().messages({
+        'number.base': 'Value must be a number.',
+        'any.required': 'Float value is required.',
+      }),
 
       faceauthstatus: Joi.string()
         .valid("yes", "no")
