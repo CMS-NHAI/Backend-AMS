@@ -236,17 +236,55 @@ export const getTeamAttendanceCount = async(req,res)=>{
 }
 
 
-//  const getTotalWorkingDays = (filterDays) => {
-//   let days = [];
-//   for (let i = 1; i <= parseInt(filterDays); i++) {
-//     let date = new Date();
-//     date.setDate(date.getDate() - i);
-//     if (!isSunday(date)) {
-//       days.push(date);
-//     }
-//   }
-//   return days;
-// }
+export const markAttendance = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    if(!userId){
+      throw new APIError(STATUS_CODES.UNAUTHORIZED, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING)
+    }
+    const { ucc,faceauthstatus, checkinTime, checkinLat,checkinLon , checkinDeviceId, checkinIpAddress, checkinRemarks, checkinDate,checkInGeofenceStatus	} = req.body.attendanceData[0]
+    if (faceauthstatus == "no") {
+      throw new APIError(STATUS_CODES.NOT_ACCEPTABLE, RESPONSE_MESSAGES.ERROR.INVALID_FACEAUTHSTATUS)
+    }
+    const markInAttendancedata = {
+      ucc_id:ucc,
+      check_in_time:new Date(checkinTime.replace(' ', 'T')).toISOString(),
+      check_in_lat:checkinLat,
+      check_in_lng:checkinLon,
+      check_in_device_id:checkinDeviceId,
+      check_in_ip_address:checkinIpAddress,
+      check_in_remarks:checkinRemarks,
+      attendance_date:checkinDate,
+      check_in_geofence_status:checkInGeofenceStatus,
+      created_by:userId,
+      created_at:new Date()
+    }
+    await saveAttendance(markInAttendancedata)
 
+    return res.status(STATUS_CODES.OK).json({
+      success: true,
+      message:RESPONSE_MESSAGES.SUCCESS.ATTENDACE_MARKED_SUCCESSFULLY,
+      data:{
+        checkinTime,
+        checkinLat,
+        checkinLon
+      }
+    })
+  } catch (error) {
+    if (error instanceof APIError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+        data:result
+      });
+    }
+    else {
+      res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
+        status: false,
+        message: error.message
+      })
+    }
+  }
+}
 
 
