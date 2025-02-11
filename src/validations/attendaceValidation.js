@@ -69,3 +69,47 @@ export const markAttendaceSchema = Joi.object({
     )
   )
 })
+
+export const markOutAttendaceSchema = Joi.object({
+  attendanceData: Joi.array().items(
+    Joi.object({
+      attendanceId: Joi.number().integer().required(),
+      checkoutTime: Joi.string()
+        .pattern(/^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) (\d{2}):([0-5]\d):([0-5]\d)$/)
+        .required()
+        .messages({
+          'string.empty': 'Checkin Time should not be empty.',
+          'string.pattern.base': 'checkinTime must be in HH:MM:SS format',
+          'any.required': 'Checkin Date is required.'
+        }),
+        checkoutDeviceId: Joi.string().allow('').optional(),
+        checkoutIpAddress: Joi.string().allow('').optional(),
+        checkoutRemarks: Joi.string().allow("").optional(),
+        checkoutGeofenceStatus:Joi.string().valid("INSIDE","OUTSIDE").required().messages({
+        "any.only": "faceauthstatus must be 'yes' or 'no'",
+        "any.required": "Geofence status is required",
+      }),
+      checkoutGeofenceStatus:Joi.string().valid("INSIDE","OUTSIDE").required().messages({
+        "any.only": "faceauthstatus must be 'yes' or 'no'",
+        "any.required": "Geofence status is required",
+      }),
+      checkoutLat: Joi.number().required().messages({
+        'number.base': 'Value must be a number.',
+        'any.required': 'Float value is required.',
+      }),
+
+      checkoutLon: Joi.number().required().messages({
+        'number.base': 'Value must be a number.',
+        'any.required': 'Float value is required.',
+      }),
+
+      faceauthstatus: Joi.string()
+        .valid("yes", "no")
+        .required()
+        .messages({ "any.only": "faceauthstatus must be 'yes' or 'no'" })
+    },
+    )
+  )
+})
+
+
