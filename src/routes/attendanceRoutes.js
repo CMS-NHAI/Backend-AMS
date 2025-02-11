@@ -18,4 +18,5 @@ router.get("/getMarkedInAttendaceCount",validateToken,validate(markInAttendaceCo
 router.post("/markAttendance",validateToken,validate(markAttendaceSchema),markAttendance)
 router.post("/markOutAttendance",validateToken,validate(markOutAttendaceSchema),markOutAttendance)
 
+
 export default router
