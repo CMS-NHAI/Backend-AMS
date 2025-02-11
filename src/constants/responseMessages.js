@@ -26,7 +26,8 @@ export const RESPONSE_MESSAGES = {
     UNABLE_TO_FETCH_UCC: "Unable to fetch ucc_ids. Please try again later.",
     INVALID_LAT_LNG: "Invalid latitude or longitude provided",
     UNABLE_TO_FETCH_NEAREST_UCC: "Unable to fetch nearest UCC. Please try again later.",
-    REQUEST_PROCESSING_ERROR: "Error Occured while processing request"
+    REQUEST_PROCESSING_ERROR: "Error Occured while processing request",
+    MARKOUT_ATTENDANCE_UPDATE_FAILED:"Mark out attendance Update Failed"
   },
   SUCCESS: {
       ANALYTICSFETCHED: 'Attendance analytics fetched successfully.',
@@ -36,6 +37,7 @@ export const RESPONSE_MESSAGES = {
       INSIDE_WORK_AREA: "You are within your work area",
       ATTENDANCE_RECORDS_FETCHED_SUCCESSFULLY:'Attendance Count fetched Successfully',
       NO_UCC_FOR_USERID: "No UCC found for the given user's userID.",
-      ATTENDACE_MARKED_SUCCESSFULLY: "You've Successfully Marked-in"
+      ATTENDACE_MARKED_SUCCESSFULLY: "You've Successfully Marked-in",
+      ATTENDACE_MARKED_OUT_SUCCESSFULLY:"You've Successfully Marked-out"
   },
 }

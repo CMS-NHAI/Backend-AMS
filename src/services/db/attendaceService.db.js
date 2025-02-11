@@ -1,5 +1,8 @@
 // dbService.js - Handles database queries
 import { prisma } from '../../config/prismaClient.js'
+import { RESPONSE_MESSAGES } from '../../constants/responseMessages.js';
+import { STATUS_CODES } from '../../constants/statusCodeConstants.js';
+import APIError from '../../utils/apiError.js';
 
 export const getUserAttendance = async (userId, startDate, endDate) => {
   return await prisma.am_attendance.findMany({
@@ -69,4 +72,28 @@ export const saveAttendance = async (attendance) => {
 }catch(error){
   console.log(error,"error occured")
 }
+}
+
+export const updateMarkoutAttendance =async(attendanceData) =>{
+
+  const lat=attendanceData.check_out_lat
+  const long=attendanceData.check_out_lng
+  try{
+    await prisma.$queryRaw`
+    UPDATE tenant_nhai.am_attendance
+    SET 
+      "check_out_time" = ${attendanceData.check_out_time}::timestamp,
+      "check_out_lat" = ${attendanceData.check_out_lat}::numeric,
+      "check_out_lng" = ${attendanceData.check_out_lng}::numeric,
+      "check_out_loc" = public.ST_GeographyFromText('SRID=4326;POINT(' || ${lat} || ' ' || ${long} || ')'),
+      "check_out_remarks" = ${attendanceData.check_out_remarks},
+      "check_out_geofence_status" = ${attendanceData.check_out_geofence_status},
+      "updated_by" = ${attendanceData.updated_by},
+      "updated_at" = NOW()
+    WHERE "attendance_id" = ${attendanceData.attendance_id};
+  `;
+  
+  }catch(error){
+    throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.MARKOUT_ATTENDANCE_UPDATE_FAILED)
+  }
 }

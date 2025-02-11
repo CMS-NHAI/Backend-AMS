@@ -9,12 +9,10 @@ import { STATUS_CODES } from '../constants/statusCodeConstants.js'
 import { getAttendanceOverviewService ,getMarkInAttendanceCountService} from '../services/attendanceService.js'
 import { getAttendanceService } from '../services/attendanceDetailService.js'
 import { getEmployeesHierarchy, getAttendanceForHierarchy } from '../services/attendanceService.js'
-import { getTeamAttendance,saveAttendance } from '../services/db/attendaceService.db.js';
+import { getTeamAttendance,saveAttendance,updateMarkoutAttendance } from '../services/db/attendaceService.db.js';
 import { calculateDateRange } from '../services/attendanceDetailService.js';
 import { processTeamAttendance } from '../services/attendanceDetailService.js';
 import APIError from '../utils/apiError.js';
-
-
 import { PrismaClient } from '@prisma/client';
 import { TAB_VALUES } from '../constants/attendanceConstant.js';
 import { exportToCSV } from '../utils/attendaceUtils.js';
@@ -278,6 +276,64 @@ export const markAttendance = async (req, res) => {
         success: false,
         message: error.message,
         data:result
+      });
+    }
+    else {
+      res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
+        status: false,
+        message: error.message
+      })
+    }
+  }
+}
+
+export const markOutAttendance=async (req,res)=>{
+  try {
+    const userId = req.user.user_id;
+    if(!userId){
+      throw new APIError(STATUS_CODES.UNAUTHORIZED, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING)
+    }
+    const attendaces = req.body.attendanceData
+    for(const data of attendaces){
+    // console.log(data,"data")
+    if (data.faceauthstatus == "no") {
+      throw new APIError(STATUS_CODES.NOT_ACCEPTABLE, RESPONSE_MESSAGES.ERROR.INVALID_FACEAUTHSTATUS)
+    }
+    const markOutAttendancedata = {
+      attendance_id:data.attendanceId,
+      check_out_time:new Date(data.checkoutTime.replace(' ', 'T')).toISOString(),
+      check_out_lat:data.checkoutLat,
+      check_out_lng:data.checkoutLon,
+      check_out_device_id:data.checkoutDeviceId,
+      check_out_ip_address:data.checkoutIpAddress,
+      check_out_remarks:data.checkoutRemarks,
+      check_out_geofence_status:data.checkoutGeofenceStatus,
+      updated_by:userId,
+      updated_at:new Date()
+    }
+    await updateMarkoutAttendance(markOutAttendancedata)
+  }
+let responseData;
+  if(req.body.attendanceData.length <=1){
+    responseData ={
+      checkoutTime:req.body.attendanceData[0].checkoutTime,
+      checkoutLat:req.body.attendanceData[0].checkoutLat,
+      checkoutLon:req.body.attendanceData[0].checkoutLon
+    }
+  }
+
+    return res.status(STATUS_CODES.OK).json({
+      success: true,
+      message:RESPONSE_MESSAGES.SUCCESS.ATTENDACE_MARKED_SUCCESSFULLY,
+      responseData
+    })
+  } catch (error) {
+    console.log(error,"erorr faced")
+    if (error instanceof APIError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+        // data:result
       });
     }
     else {
