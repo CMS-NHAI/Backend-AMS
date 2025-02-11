@@ -349,7 +349,7 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
           const attendanceDate = new Date(record.attendance_date);
           let checkInTime = null;
           let checkOutTime = null;
-          
+          const status = record.check_in_time ? 'PRESENT' : 'ABSENT';
           if (record.check_in_time) {
               const checkInDate = new Date(record.check_in_time);
               checkInTime = new Date(
@@ -374,6 +374,7 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
 
           return {
               ...record,
+              status,
               check_in_time: checkInTime,
               check_out_time: checkOutTime,
               total_hours: calculateTotalHours(checkInTime, checkOutTime),
