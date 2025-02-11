@@ -4,9 +4,9 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prismaClient.js";
 import { RESPONSE_MESSAGES } from "../constants/responseMessages.js";
+import { STATUS_CODES } from "../constants/statusCodeConstants.js";
 import APIError from "../utils/apiError.js";
 import { logger } from "../utils/logger.js";
-import { STATUS_CODES } from "../constants/statusCodeConstants.js";
 
 /**
  * Fetches all ucc_ids associated with the given user_id.
@@ -150,6 +150,8 @@ export async function getUccDetails(lat, long, userId, req) {
 
         const nearestUcc = sortedUccs[0];
 
+        const isHoliday = await checkHoliday();
+
         const message = nearestUcc.distance_in_meters > 200
             ? RESPONSE_MESSAGES.SUCCESS.OUTSIDE_WORK_AREA
             : RESPONSE_MESSAGES.SUCCESS.INSIDE_WORK_AREA;
@@ -163,7 +165,14 @@ export async function getUccDetails(lat, long, userId, req) {
             }
         });
 
-        return uccs;
+        return {
+            uccs, holidayDetails: {
+                holiday_name: isHoliday.holiday_name,
+                holiday_Date: isHoliday.holiday_Date,
+                region: isHoliday.region,
+                holiday_type: isHoliday.holiday_type
+            }
+        };
     } catch (error) {
         logger.error({
             message: RESPONSE_MESSAGES.ERROR.UNABLE_TO_FETCH_NEAREST_UCC,
@@ -176,3 +185,12 @@ export async function getUccDetails(lat, long, userId, req) {
     }
 }
 
+async function checkHoliday() {
+    const result = await prisma.holiday_master.findFirst({
+        where: {
+            holiday_Date: new Date()
+        }
+    });
+
+    return result ? result : {};
+}
