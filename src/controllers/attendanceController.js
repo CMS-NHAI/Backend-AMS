@@ -114,7 +114,7 @@ export const getAttendanceDetails = async (req, res) => {
         }
       }
     }
-      const employeesData = await getEmployeesHierarchy(userId);
+      const employeesData = await getEmployeesHierarchy(loggedInUserId);
       console.log('employees data ', employeesData);
       const totalEmployees = employeesData?.totalCount;
       const employeeUserIds = await getAttendanceForHierarchy(employeesData.hierarchy);
