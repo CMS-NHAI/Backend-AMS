@@ -13,11 +13,7 @@ router.get('/getOverviewDetails/', validateToken, getAttendanceOverview)
 router.get('/getAttendanceDetails/',validateToken,getAttendanceDetails);
 router.get('/getAllProjects', validateToken, getAllProjects);
 router.get("/locationByDate", validateToken, fetchlocationBydate);
-
 router.get("/nearestUcc", validateToken, fetchNearestProject);
-
-
-
 router.get("/getMarkedInAttendaceCount",validateToken,validate(markInAttendaceCountSchema,"query"),getTeamAttendanceCount)
 
 export default router

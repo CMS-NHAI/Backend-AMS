@@ -15,6 +15,7 @@ export const RESPONSE_MESSAGES = {
     SERVERERROR: 'An error occurred while fetching attendance analytics.',
     PROJECT_NOT_FOUND:'Project not Found',
     EXPORT_DATA_NOT_FOUND:"No data available for export",
+    INVALID_FACEAUTHSTATUS:'User Face Authentication Failed',
     INVALID_REQUEST: "Invalid request date and ucc number is required",
     INVALID_TYPE: "Please provide a proper type value",
     ERROR_DB_FETCH: "Error Occured while fetching data from DB",
@@ -34,6 +35,7 @@ export const RESPONSE_MESSAGES = {
       OUTSIDE_WORK_AREA: "You are out of your work area",
       INSIDE_WORK_AREA: "You are within your work area",
       ATTENDANCE_RECORDS_FETCHED_SUCCESSFULLY:'Attendance Count fetched Successfully',
-      NO_UCC_FOR_USERID: "No UCC found for the given user's userID."
+      NO_UCC_FOR_USERID: "No UCC found for the given user's userID.",
+      ATTENDACE_MARKED_SUCCESSFULLY: "You've Successfully Marked-in"
   },
 }

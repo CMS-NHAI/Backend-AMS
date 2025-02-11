@@ -8,8 +8,8 @@
 import { STATUS_CODES } from '../constants/statusCodeConstants.js'
 import { getAttendanceOverviewService ,getMarkInAttendanceCountService} from '../services/attendanceService.js'
 import { getAttendanceService } from '../services/attendanceDetailService.js'
-import { getEmployeesHierarchy, getAttendanceForHierarchy} from '../services/attendanceService.js'
-import { getTeamAttendance } from '../services/db/attendaceService.db.js';
+import { getEmployeesHierarchy, getAttendanceForHierarchy } from '../services/attendanceService.js'
+import { getTeamAttendance,saveAttendance } from '../services/db/attendaceService.db.js';
 import { calculateDateRange } from '../services/attendanceDetailService.js';
 import { processTeamAttendance } from '../services/attendanceDetailService.js';
 import APIError from '../utils/apiError.js';
@@ -46,7 +46,7 @@ export const getAttendanceOverview = async (req, res) => {
         message: error.message, // Send the error message
       });
     }
-    res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({success:false, message: error.message })
+    res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message })
   }
 }
 
@@ -92,7 +92,7 @@ export const getAttendanceDetails = async (req, res) => {
           message: error.message,
         });
       }
-      return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({ 
+      return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
         success: false,
         status: STATUS_CODES.INTERNAL_SERVER_ERROR,
         message: error.message
@@ -153,20 +153,20 @@ export const getAllProjects = async (req, res) => {
   try {
     // Get all active projects from ucc_master
     const projects = await prisma.ucc_master.findMany({
-      
+
       select: {
         project_name: true,
-        id : true,
-        tender_id : true,
-        tender_details : true,
-        temporary_ucc : true,
-        permanent_ucc : true ,
-        ucc_id : true,
-        contract_name : true,
-        funding_scheme : true,
-        status : true,
-        stretch_name : true,
-        usc : true
+        id: true,
+        tender_id: true,
+        tender_details: true,
+        temporary_ucc: true,
+        permanent_ucc: true,
+        ucc_id: true,
+        contract_name: true,
+        funding_scheme: true,
+        status: true,
+        stretch_name: true,
+        usc: true
 
       },
       orderBy: {
@@ -178,16 +178,16 @@ export const getAllProjects = async (req, res) => {
     if (!projects || projects.length === 0) {
       return res.status(STATUS_CODES.OK).json({
         success: false,
-        status : STATUS_CODES.OK,
+        status: STATUS_CODES.OK,
         message: 'No projects found',
         data: []
       });
     }
 
-    
+
     return res.status(STATUS_CODES.OK).json({
       success: true,
-      status : STATUS_CODES.OK,
+      status: STATUS_CODES.OK,
       message: 'Projects retrieved successfully',
       data: projects
     });
@@ -196,7 +196,7 @@ export const getAllProjects = async (req, res) => {
     console.error('Error fetching projects:', error);
     return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
       success: false,
-      status : STATUS_CODES.INTERNAL_SERVER_ERROR,
+      status: STATUS_CODES.INTERNAL_SERVER_ERROR,
       message: error.message || 'Internal server error',
       data: []
     });
