@@ -51,8 +51,8 @@ export const getAttendanceOverview = async (req, res) => {
 }
 
 export const getAttendanceDetails = async (req, res) => {
-  const { month, year, project_id, tabValue, date, exports, page = 1, limit = 10 } = req.query;
-  const userId = req.user.user_id;
+  const { month, year, project_id, tabValue, date, exports, page = 1, limit = 10 , user_id} = req.query;
+  const loggedInUserId = req.user.user_id;
   if(tabValue!=TAB_VALUES.ME && tabValue!=TAB_VALUES.MYTEAM|| !tabValue)
   {
     return res.status(STATUS_CODES.BAD_REQUEST).json({ 
@@ -64,7 +64,9 @@ export const getAttendanceDetails = async (req, res) => {
 
   if (tabValue != TAB_VALUES.MYTEAM) {
     try {
-      const result = await getAttendanceService(userId, month, year, project_id, parseInt(page), parseInt(limit));
+      
+      const targetUserId = (tabValue === TAB_VALUES.ME && user_id) ? parseInt(user_id): loggedInUserId;
+      const result = await getAttendanceService(targetUserId, month, year, project_id, parseInt(page), parseInt(limit));
       
       if(exports == 'true' && tabValue == TAB_VALUES.ME){
         // Export logic remains the same
