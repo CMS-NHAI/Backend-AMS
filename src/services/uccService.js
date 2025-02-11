@@ -68,7 +68,8 @@ async function fetchUccIdsForUser(userId, req) {
         // Return the ucc_id and project_name pairs.
         return uccProjectNames.map(row => ({
             ucc_id: row.permanent_ucc,
-            project_name: row.project_name
+            project_name: row.project_name,
+            isNearest: false
         }));
     } catch (error) {
         logger.error({
@@ -153,13 +154,16 @@ export async function getUccDetails(lat, long, userId, req) {
             ? RESPONSE_MESSAGES.SUCCESS.OUTSIDE_WORK_AREA
             : RESPONSE_MESSAGES.SUCCESS.INSIDE_WORK_AREA;
 
-        return {
-            statusCode: 200,
-            allUccs: uccs,
-            nearestUcc: nearestUcc,
-            message: message,
-        };
+        uccs.forEach(ucc => {
+            if (ucc.ucc_id === nearestUcc.ucc) {
+                ucc["ogc_fid"] = (nearestUcc.ogc_fid);
+                ucc["distance_in_meters"] = nearestUcc.distance_in_meters;
+                ucc.isNearest = true;
+                ucc['message'] = message;
+            }
+        });
 
+        return uccs;
     } catch (error) {
         logger.error({
             message: RESPONSE_MESSAGES.ERROR.UNABLE_TO_FETCH_NEAREST_UCC,
