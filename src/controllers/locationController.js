@@ -6,6 +6,7 @@ import { RESPONSE_MESSAGES } from "../constants/responseMessages.js";
 import { STATUS_CODES } from "../constants/statusCodeConstants.js";
 import { getLocationDetails } from "../services/locationService.js";
 import { getUccDetails } from "../services/uccService.js";
+import APIError from "../utils/apiError.js";
 import { logger } from "../utils/logger.js";
 
 /**
@@ -60,9 +61,16 @@ export const fetchNearestProject = async (req, res) => {
             method: req.method,
             time: new Date().toISOString(),
         });
+
+        if(err instanceof APIError) {
+            res.status(STATUS_CODES.OK).json({
+                success: true,
+                message: err.message
+            })
+        }
         res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
             success: false,
             message: err.message
-        })
+        });
     }
 }

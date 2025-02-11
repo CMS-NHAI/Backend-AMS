@@ -14,7 +14,6 @@ import { logger } from "../utils/logger.js";
  * @returns {Promise<string[]>} - A list of ucc_id strings.
  */
 async function fetchUccIdsForUser(userId, req) {
-    try {
         logger.info({
             message: 'Fetching UCC IDs for the given user.',
             method: req.method,
@@ -71,16 +70,6 @@ async function fetchUccIdsForUser(userId, req) {
             project_name: row.project_name,
             isNearest: false
         }));
-    } catch (error) {
-        logger.error({
-            message: RESPONSE_MESSAGES.ERROR.UNABLE_TO_FETCH_UCC,
-            error: error,
-            url: req.url,
-            method: req.method,
-            time: new Date().toISOString(),
-        });
-        throw new APIError(STATUS_CODES.NOT_FOUND, error.message);
-    }
 }
 
 /**
@@ -91,7 +80,6 @@ async function fetchUccIdsForUser(userId, req) {
  * @returns {Promise<Object>} - Returns an object containing all UCCs, nearest UCC, and message.
  */
 export async function getUccDetails(lat, long, userId, req) {
-    try {
         if (isNaN(lat) || isNaN(long)) {
             throw new APIError(STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.INVALID_LAT_LNG);
         }
@@ -166,6 +154,7 @@ export async function getUccDetails(lat, long, userId, req) {
         });
 
         return {
+            message: message,
             uccs, holidayDetails: {
                 holiday_name: isHoliday.holiday_name,
                 holiday_Date: isHoliday.holiday_Date,
@@ -173,16 +162,6 @@ export async function getUccDetails(lat, long, userId, req) {
                 holiday_type: isHoliday.holiday_type
             }
         };
-    } catch (error) {
-        logger.error({
-            message: RESPONSE_MESSAGES.ERROR.UNABLE_TO_FETCH_NEAREST_UCC,
-            error: error,
-            url: req.url,
-            method: req.method,
-            time: new Date().toISOString(),
-        });
-        throw new APIError(STATUS_CODES.NOT_FOUND, error.message);
-    }
 }
 
 async function checkHoliday() {
