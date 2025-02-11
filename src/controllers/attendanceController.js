@@ -324,7 +324,7 @@ let responseData;
 
     return res.status(STATUS_CODES.OK).json({
       success: true,
-      message:RESPONSE_MESSAGES.SUCCESS.ATTENDACE_MARKED_SUCCESSFULLY,
+      message:RESPONSE_MESSAGES.SUCCESS.ATTENDACE_MARKED_OUT_SUCCESSFULLY,
       responseData
     })
   } catch (error) {
