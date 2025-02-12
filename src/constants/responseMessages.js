@@ -40,6 +40,7 @@ export const RESPONSE_MESSAGES = {
       ATTENDANCE_RECORDS_FETCHED_SUCCESSFULLY:'Attendance Count fetched Successfully',
       NO_UCC_FOR_USERID: "No UCC found for the given user's userID.",
       ATTENDACE_MARKED_SUCCESSFULLY: "You've Successfully Marked-in",
+      NO_ATENDANCE_RECORD: "No attendance records found for the given user_ids and date",
       ATTENDACE_MARKED_OUT_SUCCESSFULLY:"You've Successfully Marked-out"
   },
 }

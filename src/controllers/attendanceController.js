@@ -17,6 +17,7 @@ import { PrismaClient } from '@prisma/client';
 import { TAB_VALUES } from '../constants/attendanceConstant.js';
 import { exportToCSV } from '../utils/attendaceUtils.js';
 import { RESPONSE_MESSAGES } from '../constants/responseMessages.js';
+import { fetchCheckedInEmployees } from '../services/employeeService.js';
 const prisma = new PrismaClient();
 /**
  * Get Attendace Overview of a user by Id.
@@ -402,4 +403,30 @@ let responseData;
   }
 }
 
+export const checkedInEmployees = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    if (!userId) {
+      throw new APIError(STATUS_CODES.UNAUTHORIZED, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING)
+    }
 
+    const data = await fetchCheckedInEmployees(req, userId);
+
+    return res.status(STATUS_CODES.OK).json({
+      success: true,
+      data
+    })
+  } catch (err) {
+    if (error instanceof APIError) {
+      res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+        data: result
+      });
+    }
+    res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
+      status: false,
+      message: error.message
+    });
+  }
+}
