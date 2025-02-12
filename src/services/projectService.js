@@ -31,6 +31,13 @@ export const getProjectDetails = async (req, userId, date, ucc_id) => {
             time: new Date().toISOString(),
         });
 
+        // Validate pagination parameters
+        const page = parseInt(req.query?.page) || 2;
+        const limit = parseInt(req.query?.limit) || 10
+
+        // Calculate offset for pagination
+        const offset = (page - 1) * limit;
+
         logger.info({
             message: 'Fetching team details for the reporting manager.',
             method: req.method,
@@ -41,6 +48,7 @@ export const getProjectDetails = async (req, userId, date, ucc_id) => {
         // Fetch team userIds based on the given reporting manager userId
         const teamDetails = await getTeamUserIds(userId, new Set());
         const teamUserIds = teamDetails.userIds;
+
 
         logger.info({
             message: 'Fetching attendance data.',
@@ -93,6 +101,14 @@ export const getProjectDetails = async (req, userId, date, ucc_id) => {
             time: new Date().toISOString(),
         });
 
+        const totalRecords = await prisma.ucc_master.count({
+            where: {
+                permanent_ucc: {
+                    in: uccIdsToFetch,  // Filtering by UCC IDs that are present in attendance data
+                },
+            },
+        });
+
         const uccDetails = await prisma.ucc_master.findMany({
             where: {
                 permanent_ucc: {
@@ -104,6 +120,8 @@ export const getProjectDetails = async (req, userId, date, ucc_id) => {
                 permanent_ucc: true,
                 project_name: true,
             },
+            take: limit,
+            skip: offset,
         });
 
         const projectDetails = uccDetails.map((ucc) => {
@@ -134,7 +152,14 @@ export const getProjectDetails = async (req, userId, date, ucc_id) => {
             time: new Date().toISOString(),
         });
 
-        return projectDetails;
+        return {
+            projectDetails,
+            pagination: {
+                page: page,
+                limit: limit,
+                totalRecords: totalRecords,
+            },
+        };
     } catch (error) {
         throw error
     }
