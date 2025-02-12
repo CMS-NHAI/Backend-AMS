@@ -70,7 +70,7 @@ export const saveAttendance = async (attendance) => {
     public.ST_GeographyFromText('SRID=4326;POINT(' || ${lat} || ' ' || ${long} || ')'), 
   ${attendance.check_in_remarks},${attendance.check_in_geofence_status}, ${attendance.attendance_date}::date, ${attendance.created_by}, NOW())`;
 }catch(error){
-  console.log(error,"error occured")
+  throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.MARKIN_ATTENDANCE_UPDATE_FAILED)
 }
 }
 

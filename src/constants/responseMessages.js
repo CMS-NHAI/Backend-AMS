@@ -28,7 +28,8 @@ export const RESPONSE_MESSAGES = {
     UNABLE_TO_FETCH_NEAREST_UCC: "Unable to fetch nearest UCC. Please try again later.",
     REQUEST_PROCESSING_ERROR: "Error Occured while processing request",
     MARKOUT_ATTENDANCE_UPDATE_FAILED:"Mark out attendance Update Failed",
-    INVALID_ATTENDANCE_DATA:"Invalid Attendance Data"
+    INVALID_ATTENDANCE_DATA:"Invalid Attendance Data",
+    MARKIN_ATTENDANCE_UPDATE_FAILED:"Mark-in attendance Insertion Failed"
   },
   SUCCESS: {
       ANALYTICSFETCHED: 'Attendance analytics fetched successfully.',
