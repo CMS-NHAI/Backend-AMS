@@ -9,12 +9,10 @@ import { STATUS_CODES } from '../constants/statusCodeConstants.js'
 import { getAttendanceOverviewService ,getMarkInAttendanceCountService} from '../services/attendanceService.js'
 import { getAttendanceService } from '../services/attendanceDetailService.js'
 import { getEmployeesHierarchy, getAttendanceForHierarchy } from '../services/attendanceService.js'
-import { getTeamAttendance,saveAttendance } from '../services/db/attendaceService.db.js';
+import { getTeamAttendance,saveAttendance,updateMarkoutAttendance } from '../services/db/attendaceService.db.js';
 import { calculateDateRange } from '../services/attendanceDetailService.js';
 import { processTeamAttendance } from '../services/attendanceDetailService.js';
 import APIError from '../utils/apiError.js';
-
-
 import { PrismaClient } from '@prisma/client';
 import { TAB_VALUES } from '../constants/attendanceConstant.js';
 import { exportToCSV } from '../utils/attendaceUtils.js';
@@ -68,23 +66,28 @@ export const getAttendanceDetails = async (req, res) => {
       
       const targetUserId = (tabValue === TAB_VALUES.ME && user_id) ? parseInt(user_id): loggedInUserId;
       const result = await getAttendanceService(targetUserId, month, year, project_id, parseInt(page), parseInt(limit));
-      
       if(exports == 'true' && tabValue == TAB_VALUES.ME){
         // Export logic remains the same
-        const exportAttendanceRecords = [];
-        for(const[date,records] of Object.entries(result.data.attendance)){
-          await records.forEach(record => {
-            exportAttendanceRecords.push({
-              date,
-              attendaceStatus: record.status,
-              projectName: record.project_name,
-              totalHours: record.total_hours,
-              checkOutTime: record.check_out_time,
-              checkInTime: record.check_in_time
-            });
-          });
-        }
-        return await exportToCSV(res, exportAttendanceRecords, "MyAttendance");
+        const exportAttendanceRecords = result.data.attendance.map(record => ({
+          date: new Date(record.attendance_date).toLocaleDateString(),
+          attendanceStatus: record.status,
+          projectName: record.project_name,
+          totalHours: record.total_hours,
+          checkInTime: record.check_in_time ? new Date(record.check_in_time).toLocaleTimeString() : '-',
+          checkOutTime: record.check_out_time ? new Date(record.check_out_time).toLocaleTimeString() : '-'
+      }));
+  
+      // Define custom headers for CSV
+      const headers = [
+          { id: 'date', title: 'Date' },
+          { id: 'attendanceStatus', title: 'Attendance Status' },
+          { id: 'projectName', title: 'Project Name' },
+          { id: 'totalHours', title: 'Total Hours' },
+          { id: 'checkInTime', title: 'Check In Time' },
+          { id: 'checkOutTime', title: 'Check Out Time' }
+      ];
+  
+      return await exportToCSV(res, exportAttendanceRecords, "MyAttendance", headers);
       }
       
       return res.status(STATUS_CODES.OK).json(result);
@@ -115,7 +118,7 @@ export const getAttendanceDetails = async (req, res) => {
         }
       }
     }
-      const employeesData = await getEmployeesHierarchy(userId);
+      const employeesData = await getEmployeesHierarchy(loggedInUserId);
       console.log('employees data ', employeesData);
       const totalEmployees = employeesData?.totalCount;
       const employeeUserIds = await getAttendanceForHierarchy(employeesData.hierarchy);
@@ -139,6 +142,43 @@ export const getAttendanceDetails = async (req, res) => {
         parseInt(limit)
       );
       console.log('result=>>>>>>>>>>>>>>>>> ', result);
+    
+        if (exports == 'true') {
+          let exportTeamAttendanceRecords = [];
+          
+          result.data.employees.forEach(employee => {
+              if (employee.attendance.length > 0) {
+                  // Only add records for employees who have attendance data
+                  employee.attendance.forEach(record => {
+                      exportTeamAttendanceRecords.push({
+                          employee: employee.employee_details.name,
+                          designation: employee.employee_details.designation || '-',
+                          attendanceStatus: record.status,
+                          projectName: record.project_name || '-',
+                          totalHours: record.total_hours || '0.00',
+                          checkInTime: record.check_in_time ? 
+                              new Date(record.check_in_time).toLocaleTimeString() : '-',
+                          checkOutTime: record.check_out_time ? 
+                              new Date(record.check_out_time).toLocaleTimeString() : '-'
+                      });
+                  });
+              }
+              // Skip employees with no attendance records
+          });
+      
+          const headers = [
+              { id: 'employee', title: 'Employee Name' },
+              { id: 'designation', title: 'Designation' },
+              { id: 'attendanceStatus', title: 'Attendance Status' },
+              { id: 'projectName', title: 'Project Name' },
+              { id: 'totalHours', title: 'Total Working Hours' },
+              { id: 'checkInTime', title: 'Check In Time' },
+              { id: 'checkOutTime', title: 'Check Out Time' }
+          ];
+      
+          return await exportToCSV(res, exportTeamAttendanceRecords, "TeamAttendance", headers);
+      }
+  
 
       return res.status(STATUS_CODES.OK).json(result);
     } catch (error) {
@@ -242,43 +282,116 @@ export const getTeamAttendanceCount = async(req,res)=>{
 export const markAttendance = async (req, res) => {
   try {
     const userId = req.user.user_id;
-    if(!userId){
-      throw new APIError(STATUS_CODES.UNAUTHORIZED, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING)
+    if (!userId) {
+      throw new APIError(STATUS_CODES.UNAUTHORIZED, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING);
     }
-    const { ucc,faceauthstatus, checkinTime, checkinLat,checkinLon , checkinDeviceId, checkinIpAddress, checkinRemarks, checkinDate,checkInGeofenceStatus	} = req.body.attendanceData[0]
-    if (faceauthstatus == "no") {
-      throw new APIError(STATUS_CODES.NOT_ACCEPTABLE, RESPONSE_MESSAGES.ERROR.INVALID_FACEAUTHSTATUS)
+
+    const attendanceDataArray = req.body.attendanceData; // Assuming attendanceData is an array of objects
+    if (!Array.isArray(attendanceDataArray) || attendanceDataArray.length === 0) {
+      throw new APIError(STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.INVALID_ATTENDANCE_DATA);
     }
-    const markInAttendancedata = {
-      ucc_id:ucc,
-      check_in_time:new Date(checkinTime.replace(' ', 'T')).toISOString(),
-      check_in_lat:checkinLat,
-      check_in_lng:checkinLon,
-      check_in_device_id:checkinDeviceId,
-      check_in_ip_address:checkinIpAddress,
-      check_in_remarks:checkinRemarks,
-      attendance_date:checkinDate,
-      check_in_geofence_status:checkInGeofenceStatus,
-      created_by:userId,
-      created_at:new Date()
+
+    const processedData = [];
+
+    for (const attendanceData of attendanceDataArray) {
+      const { ucc, faceauthstatus, checkinTime, checkinLat, checkinLon, checkinDeviceId, checkinIpAddress, checkinRemarks, checkinDate, checkInGeofenceStatus } = attendanceData;
+
+      if (faceauthstatus === "no") {
+        throw new APIError(STATUS_CODES.NOT_ACCEPTABLE, RESPONSE_MESSAGES.ERROR.INVALID_FACEAUTHSTATUS);
+      }
+
+      const markInAttendancedata = {
+        ucc_id: ucc,
+        check_in_time: new Date(checkinTime.replace(' ', 'T')).toISOString(),
+        check_in_lat: checkinLat,
+        check_in_lng: checkinLon,
+        check_in_device_id: checkinDeviceId,
+        check_in_ip_address: checkinIpAddress,
+        check_in_remarks: checkinRemarks,
+        attendance_date: checkinDate,
+        check_in_geofence_status: checkInGeofenceStatus,
+        created_by: userId,
+        created_at: new Date(),
+      };
+
+      await saveAttendance(markInAttendancedata);
+      processedData.push({
+        checkinTime,
+        checkinLat,
+        checkinLon,
+      });
     }
-    await saveAttendance(markInAttendancedata)
 
     return res.status(STATUS_CODES.OK).json({
       success: true,
-      message:RESPONSE_MESSAGES.SUCCESS.ATTENDACE_MARKED_SUCCESSFULLY,
-      data:{
-        checkinTime,
-        checkinLat,
-        checkinLon
-      }
-    })
+      message: RESPONSE_MESSAGES.SUCCESS.ATTENDACE_MARKED_SUCCESSFULLY,
+      data: processedData, // Returning processed data of all attendance records
+    });
+
   } catch (error) {
     if (error instanceof APIError) {
       return res.status(error.statusCode).json({
         success: false,
         message: error.message,
-        data:result
+        data: null,
+      });
+    } else {
+      return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
+        status: false,
+        message: error.message,
+      });
+    }
+  }
+};
+
+
+export const markOutAttendance=async (req,res)=>{
+  try {
+    const userId = req.user.user_id;
+    if(!userId){
+      throw new APIError(STATUS_CODES.UNAUTHORIZED, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING)
+    }
+    const attendaces = req.body.attendanceData
+    for(const data of attendaces){
+    // console.log(data,"data")
+    if (data.faceauthstatus == "no") {
+      throw new APIError(STATUS_CODES.NOT_ACCEPTABLE, RESPONSE_MESSAGES.ERROR.INVALID_FACEAUTHSTATUS)
+    }
+    const markOutAttendancedata = {
+      attendance_id:data.attendanceId,
+      check_out_time:new Date(data.checkoutTime.replace(' ', 'T')).toISOString(),
+      check_out_lat:data.checkoutLat,
+      check_out_lng:data.checkoutLon,
+      check_out_device_id:data.checkoutDeviceId,
+      check_out_ip_address:data.checkoutIpAddress,
+      check_out_remarks:data.checkoutRemarks,
+      check_out_geofence_status:data.checkoutGeofenceStatus,
+      updated_by:userId,
+      updated_at:new Date()
+    }
+    await updateMarkoutAttendance(markOutAttendancedata)
+  }
+let responseData;
+  if(req.body.attendanceData.length <=1){
+    responseData ={
+      checkoutTime:req.body.attendanceData[0].checkoutTime,
+      checkoutLat:req.body.attendanceData[0].checkoutLat,
+      checkoutLon:req.body.attendanceData[0].checkoutLon
+    }
+  }
+
+    return res.status(STATUS_CODES.OK).json({
+      success: true,
+      message:RESPONSE_MESSAGES.SUCCESS.ATTENDACE_MARKED_OUT_SUCCESSFULLY,
+      responseData
+    })
+  } catch (error) {
+    console.log(error,"erorr faced")
+    if (error instanceof APIError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+        // data:result
       });
     }
     else {
