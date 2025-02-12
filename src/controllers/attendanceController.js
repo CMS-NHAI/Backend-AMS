@@ -67,20 +67,26 @@ export const getAttendanceDetails = async (req, res) => {
       const result = await getAttendanceService(targetUserId, month, year, project_id, parseInt(page), parseInt(limit));
       if(exports == 'true' && tabValue == TAB_VALUES.ME){
         // Export logic remains the same
-        const exportAttendanceRecords = [];
-        for(const[date,records] of Object.entries(result.data.attendance)){
-          await records.forEach(record => {
-            exportAttendanceRecords.push({
-              date,
-              attendaceStatus: record.status,
-              projectName: record.project_name,
-              totalHours: record.total_hours,
-              checkOutTime: record.check_out_time,
-              checkInTime: record.check_in_time
-            });
-          });
-        }
-        return await exportToCSV(res, exportAttendanceRecords, "MyAttendance");
+        const exportAttendanceRecords = result.data.attendance.map(record => ({
+          date: new Date(record.attendance_date).toLocaleDateString(),
+          attendanceStatus: record.status,
+          projectName: record.project_name,
+          totalHours: record.total_hours,
+          checkInTime: record.check_in_time ? new Date(record.check_in_time).toLocaleTimeString() : '-',
+          checkOutTime: record.check_out_time ? new Date(record.check_out_time).toLocaleTimeString() : '-'
+      }));
+  
+      // Define custom headers for CSV
+      const headers = [
+          { id: 'date', title: 'Date' },
+          { id: 'attendanceStatus', title: 'Attendance Status' },
+          { id: 'projectName', title: 'Project Name' },
+          { id: 'totalHours', title: 'Total Hours' },
+          { id: 'checkInTime', title: 'Check In Time' },
+          { id: 'checkOutTime', title: 'Check Out Time' }
+      ];
+  
+      return await exportToCSV(res, exportAttendanceRecords, "MyAttendance", headers);
       }
       
       return res.status(STATUS_CODES.OK).json(result);
@@ -135,6 +141,43 @@ export const getAttendanceDetails = async (req, res) => {
         parseInt(limit)
       );
       console.log('result=>>>>>>>>>>>>>>>>> ', result);
+    
+        if (exports == 'true') {
+          let exportTeamAttendanceRecords = [];
+          
+          result.data.employees.forEach(employee => {
+              if (employee.attendance.length > 0) {
+                  // Only add records for employees who have attendance data
+                  employee.attendance.forEach(record => {
+                      exportTeamAttendanceRecords.push({
+                          employee: employee.employee_details.name,
+                          designation: employee.employee_details.designation || '-',
+                          attendanceStatus: record.status,
+                          projectName: record.project_name || '-',
+                          totalHours: record.total_hours || '0.00',
+                          checkInTime: record.check_in_time ? 
+                              new Date(record.check_in_time).toLocaleTimeString() : '-',
+                          checkOutTime: record.check_out_time ? 
+                              new Date(record.check_out_time).toLocaleTimeString() : '-'
+                      });
+                  });
+              }
+              // Skip employees with no attendance records
+          });
+      
+          const headers = [
+              { id: 'employee', title: 'Employee Name' },
+              { id: 'designation', title: 'Designation' },
+              { id: 'attendanceStatus', title: 'Attendance Status' },
+              { id: 'projectName', title: 'Project Name' },
+              { id: 'totalHours', title: 'Total Working Hours' },
+              { id: 'checkInTime', title: 'Check In Time' },
+              { id: 'checkOutTime', title: 'Check Out Time' }
+          ];
+      
+          return await exportToCSV(res, exportTeamAttendanceRecords, "TeamAttendance", headers);
+      }
+  
 
       return res.status(STATUS_CODES.OK).json(result);
     } catch (error) {
