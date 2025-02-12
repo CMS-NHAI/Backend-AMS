@@ -29,7 +29,9 @@ export const RESPONSE_MESSAGES = {
     REQUEST_PROCESSING_ERROR: "Error Occured while processing request",
     MARKOUT_ATTENDANCE_UPDATE_FAILED:"Mark out attendance Update Failed",
     INVALID_ATTENDANCE_DATA:"Invalid Attendance Data",
-    MARKIN_ATTENDANCE_UPDATE_FAILED:"Mark-in attendance Insertion Failed"
+    MARKIN_ATTENDANCE_UPDATE_FAILED:"Mark-in attendance Insertion Failed",
+    INVALID_TABVALUE:"Invalid Tab Value",
+    RECORD_FETCHING_FAILED:"Attendace Record Fetching Failed"
   },
   SUCCESS: {
       ANALYTICSFETCHED: 'Attendance analytics fetched successfully.',
