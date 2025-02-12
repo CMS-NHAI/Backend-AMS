@@ -4,7 +4,7 @@ import moment from 'moment';
 const today = moment().format('YYYY-MM-DD');
 const fourteenDaysAgo = moment().subtract(14, 'days').format('YYYY-MM-DD');
 
-export const markInAttendaceCountSchema =Joi.object({
+export const markInAttendaceCountSchema = Joi.object({
   tabValue: Joi.string()
     .valid('myteam')
     .required()
@@ -43,7 +43,7 @@ export const markAttendaceSchema = Joi.object({
           'any.required': 'Checkin Date is required.'
         }),
       checkinRemarks: Joi.string().allow("").optional(),
-      checkInGeofenceStatus:Joi.string().valid("INSIDE","OUTSIDE").required().messages({
+      checkInGeofenceStatus: Joi.string().valid("INSIDE", "OUTSIDE").required().messages({
         "any.only": "faceauthstatus must be 'yes' or 'no'",
         "any.required": "Geofence status is required",
       }),
@@ -100,6 +100,19 @@ export const projectDetailsValidationSchema = Joi.object({
     'any.required': 'ucc_id is required',
     'string.pattern.base': 'ucc_id must be alphanumeric and can include letters and numbers only',
   }),
+  limit: Joi.number().integer().positive().default(10).max(100).messages({
+    'number.base': 'Limit must be a number',
+    'number.integer': 'Limit must be an integer',
+    'number.positive': 'Limit must be a positive integer',
+    'any.default': 'Default limit is 10',
+    'number.max': 'Limit cannot be more than 100',
+  }),
+  page: Joi.number().integer().positive().default(1).messages({
+    'number.base': 'Page must be a number',
+    'number.integer': 'Page must be an integer',
+    'number.positive': 'Page must be a positive integer',
+    'any.default': 'Default page is 1',
+  }),
 });
 
 export const markOutAttendaceSchema = Joi.object({
@@ -114,14 +127,14 @@ export const markOutAttendaceSchema = Joi.object({
           'string.pattern.base': 'checkinTime must be in HH:MM:SS format',
           'any.required': 'Checkin Date is required.'
         }),
-        checkoutDeviceId: Joi.string().allow('').optional(),
-        checkoutIpAddress: Joi.string().allow('').optional(),
-        checkoutRemarks: Joi.string().allow("").optional(),
-        checkoutGeofenceStatus:Joi.string().valid("INSIDE","OUTSIDE").required().messages({
+      checkoutDeviceId: Joi.string().allow('').optional(),
+      checkoutIpAddress: Joi.string().allow('').optional(),
+      checkoutRemarks: Joi.string().allow("").optional(),
+      checkoutGeofenceStatus: Joi.string().valid("INSIDE", "OUTSIDE").required().messages({
         "any.only": "faceauthstatus must be 'yes' or 'no'",
         "any.required": "Geofence status is required",
       }),
-      checkoutGeofenceStatus:Joi.string().valid("INSIDE","OUTSIDE").required().messages({
+      checkoutGeofenceStatus: Joi.string().valid("INSIDE", "OUTSIDE").required().messages({
         "any.only": "faceauthstatus must be 'yes' or 'no'",
         "any.required": "Geofence status is required",
       }),
