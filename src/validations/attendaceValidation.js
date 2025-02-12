@@ -6,13 +6,13 @@ const fourteenDaysAgo = moment().subtract(14, 'days').format('YYYY-MM-DD');
 
 export const markInAttendaceCountSchema =Joi.object({
   tabValue: Joi.string()
-  .valid('myteam')
-  .required()
-  .messages({
-    'any.only': "tabValue must be 'myteam'",
-    'string.base': 'tabValue must be a string',
-    'any.required': 'tabValue is required',
-  }),
+    .valid('myteam')
+    .required()
+    .messages({
+      'any.only': "tabValue must be 'myteam'",
+      'string.base': 'tabValue must be a string',
+      'any.required': 'tabValue is required',
+    }),
   date: Joi.string()
     .valid(today, fourteenDaysAgo)
     .required()
@@ -68,4 +68,36 @@ export const markAttendaceSchema = Joi.object({
     },
     )
   )
-})
+});
+
+export const projectDetailsValidationSchema = Joi.object({
+  date: Joi.date().iso().required().messages({
+    'date.base': 'date must be a valid date',
+    'date.format': 'date must be in the format YYYY-MM-DD',
+    'any.required': 'date is required',
+  }),
+  uccId: Joi.string().trim().custom((value, helpers) => {
+    // If ucc_id is "all", it is valid
+    if (value === 'all') {
+      return value;
+    }
+
+    // Ensure ucc_id is a non-numeric string
+    if (/^\d+$/.test(value)) {
+      return helpers.error('string.pattern.base', { message: 'ucc_id cannot be purely numeric' });
+    }
+
+    // Validate string as alphanumeric
+    const regex = /^[A-Za-z0-9]+$/;
+    if (!regex.test(value)) {
+      return helpers.error('string.pattern.base', { message: 'ucc_id must be alphanumeric and can include letters and numbers only' });
+    }
+
+    return value;
+  }).required().messages({
+    'string.base': 'ucc_id must be a string',
+    'string.empty': 'ucc_id cannot be an empty string',
+    'any.required': 'ucc_id is required',
+    'string.pattern.base': 'ucc_id must be alphanumeric and can include letters and numbers only',
+  }),
+});

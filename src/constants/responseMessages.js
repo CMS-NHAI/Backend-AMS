@@ -36,6 +36,7 @@ export const RESPONSE_MESSAGES = {
       INSIDE_WORK_AREA: "You are within your work area",
       ATTENDANCE_RECORDS_FETCHED_SUCCESSFULLY:'Attendance Count fetched Successfully',
       NO_UCC_FOR_USERID: "No UCC found for the given user's userID.",
-      ATTENDACE_MARKED_SUCCESSFULLY: "You've Successfully Marked-in"
+      ATTENDACE_MARKED_SUCCESSFULLY: "You've Successfully Marked-in",
+      NO_ATENDANCE_RECORD: "No attendance records found for the given user_ids and date"
   },
 }

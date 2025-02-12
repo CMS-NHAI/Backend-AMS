@@ -2,7 +2,6 @@
  * @author Deepak
  */
 
-import { Prisma } from '@prisma/client';
 import { prisma } from "../config/prismaClient.js";
 import { RESPONSE_MESSAGES } from "../constants/responseMessages.js";
 import { STATUS_CODES } from "../constants/statusCodeConstants.js";
@@ -32,7 +31,6 @@ export const getLocationDetails = async (req, res) => {
 
     try {
         if (type === STRING_CONSTANT.SINGLE_TYPE) {
-            console.log("Inside ME Flow..");
             const attendanceData = await prisma.$queryRaw`
                 SELECT 
                 attendance_id,
@@ -57,26 +55,18 @@ export const getLocationDetails = async (req, res) => {
                 AND attendance_date = CAST(${date} AS DATE) AND ucc_id = ${uccNo};
             `;
 
-            console.log("Attendance Data fetched successfully..");
-
             const stretchLineData = await getGisData(uccNo);
 
-            console.log("GIS data fetched dt:: ");
-
             if (attendanceData.length > 0) {
-                console.log("Attt data len is > 0..");
                 attendanceData[0].check_out_loc = JSON.parse(attendanceData[0].check_out_loc);
                 attendanceData[0].check_in_loc = JSON.parse(attendanceData[0].check_in_loc);
 
                 await calculateAndAddDistance(attendanceId, date, uccNo, attendanceData);
-
-                console.log("Distance added successfully:::");
             }
 
             return { attendanceData, stretchLineData };
 
         } else if (type === STRING_CONSTANT.MULTIPLE_TYPE) {
-            console.log("Inside multiple/ MY flow:");
             // const attendanceData = await getAttendanceLocationForTeam(userId, date, uccNo);
 
             // if (attendanceData.length > 0) {
@@ -97,7 +87,6 @@ export const getLocationDetails = async (req, res) => {
             return res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.INVALID_TYPE });
         }
     } catch (error) {
-        console.log("Location Service Errorr:: ", error);
         logger.error({
             message: RESPONSE_MESSAGES.ERROR.ERROR_DB_FETCH,
             error: error,
