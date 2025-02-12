@@ -65,7 +65,6 @@ export const getAttendanceDetails = async (req, res) => {
       
       const targetUserId = (tabValue === TAB_VALUES.ME && user_id) ? parseInt(user_id): loggedInUserId;
       const result = await getAttendanceService(targetUserId, month, year, project_id, parseInt(page), parseInt(limit));
-      
       if(exports == 'true' && tabValue == TAB_VALUES.ME){
         // Export logic remains the same
         const exportAttendanceRecords = [];
@@ -239,53 +238,68 @@ export const getTeamAttendanceCount = async(req,res)=>{
 export const markAttendance = async (req, res) => {
   try {
     const userId = req.user.user_id;
-    if(!userId){
-      throw new APIError(STATUS_CODES.UNAUTHORIZED, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING)
+    if (!userId) {
+      throw new APIError(STATUS_CODES.UNAUTHORIZED, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING);
     }
-    const { ucc,faceauthstatus, checkinTime, checkinLat,checkinLon , checkinDeviceId, checkinIpAddress, checkinRemarks, checkinDate,checkInGeofenceStatus	} = req.body.attendanceData[0]
-    if (faceauthstatus == "no") {
-      throw new APIError(STATUS_CODES.NOT_ACCEPTABLE, RESPONSE_MESSAGES.ERROR.INVALID_FACEAUTHSTATUS)
+
+    const attendanceDataArray = req.body.attendanceData; // Assuming attendanceData is an array of objects
+    if (!Array.isArray(attendanceDataArray) || attendanceDataArray.length === 0) {
+      throw new APIError(STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.INVALID_ATTENDANCE_DATA);
     }
-    const markInAttendancedata = {
-      ucc_id:ucc,
-      check_in_time:new Date(checkinTime.replace(' ', 'T')).toISOString(),
-      check_in_lat:checkinLat,
-      check_in_lng:checkinLon,
-      check_in_device_id:checkinDeviceId,
-      check_in_ip_address:checkinIpAddress,
-      check_in_remarks:checkinRemarks,
-      attendance_date:checkinDate,
-      check_in_geofence_status:checkInGeofenceStatus,
-      created_by:userId,
-      created_at:new Date()
+
+    const processedData = [];
+
+    for (const attendanceData of attendanceDataArray) {
+      const { ucc, faceauthstatus, checkinTime, checkinLat, checkinLon, checkinDeviceId, checkinIpAddress, checkinRemarks, checkinDate, checkInGeofenceStatus } = attendanceData;
+
+      if (faceauthstatus === "no") {
+        throw new APIError(STATUS_CODES.NOT_ACCEPTABLE, RESPONSE_MESSAGES.ERROR.INVALID_FACEAUTHSTATUS);
+      }
+
+      const markInAttendancedata = {
+        ucc_id: ucc,
+        check_in_time: new Date(checkinTime.replace(' ', 'T')).toISOString(),
+        check_in_lat: checkinLat,
+        check_in_lng: checkinLon,
+        check_in_device_id: checkinDeviceId,
+        check_in_ip_address: checkinIpAddress,
+        check_in_remarks: checkinRemarks,
+        attendance_date: checkinDate,
+        check_in_geofence_status: checkInGeofenceStatus,
+        created_by: userId,
+        created_at: new Date(),
+      };
+
+      await saveAttendance(markInAttendancedata);
+      processedData.push({
+        checkinTime,
+        checkinLat,
+        checkinLon,
+      });
     }
-    await saveAttendance(markInAttendancedata)
 
     return res.status(STATUS_CODES.OK).json({
       success: true,
-      message:RESPONSE_MESSAGES.SUCCESS.ATTENDACE_MARKED_SUCCESSFULLY,
-      data:{
-        checkinTime,
-        checkinLat,
-        checkinLon
-      }
-    })
+      message: RESPONSE_MESSAGES.SUCCESS.ATTENDACE_MARKED_SUCCESSFULLY,
+      data: processedData, // Returning processed data of all attendance records
+    });
+
   } catch (error) {
     if (error instanceof APIError) {
       return res.status(error.statusCode).json({
         success: false,
         message: error.message,
-        data:result
+        data: null,
+      });
+    } else {
+      return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
+        status: false,
+        message: error.message,
       });
     }
-    else {
-      res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
-        status: false,
-        message: error.message
-      })
-    }
   }
-}
+};
+
 
 export const markOutAttendance=async (req,res)=>{
   try {
