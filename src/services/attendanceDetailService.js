@@ -189,9 +189,15 @@
   const processAttendanceRecords = (records, projectMap) => {
     return records.map(record => {
       const attendanceDate = new Date(record.attendance_date);
-      
       // Determine status based on check_in_time
-      const status = record.check_in_time ? 'Present' : 'Absent';
+      let status = record.check_in_time ? 'Present' : 'Absent';
+      if (record.check_in_time) {
+        const checkInStatus = record.check_in_geofence_status?.toUpperCase();
+        const checkOutStatus = record.check_out_geofence_status?.toUpperCase();
+        if (checkInStatus === 'OUTSIDE' || checkOutStatus === 'OUTSIDE') {
+          status = 'Offsite Present';
+        }
+      }
     
       // Combine attendance date with check in/out times
       const checkInTime = record.check_in_time ? new Date(
@@ -349,7 +355,14 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
           const attendanceDate = new Date(record.attendance_date);
           let checkInTime = null;
           let checkOutTime = null;
-          const status = record.check_in_time ? 'Present' : 'Absent';
+          let status = record.check_in_time ? 'Present' : 'Absent';
+          if (record.check_in_time) {
+            const checkInStatus = record.check_in_geofence_status?.toUpperCase();
+            const checkOutStatus = record.check_out_geofence_status?.toUpperCase();
+            if (checkInStatus === 'OUTSIDE' || checkOutStatus === 'OUTSIDE') {
+              status = 'Offsite Present';
+            }
+          }
           if (record.check_in_time) {
               const checkInDate = new Date(record.check_in_time);
               checkInTime = new Date(
