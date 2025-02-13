@@ -97,3 +97,20 @@ export const updateMarkoutAttendance =async(attendanceData) =>{
     throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.MARKOUT_ATTENDANCE_UPDATE_FAILED)
   }
 }
+
+export const getTeamAttendaceCount=async(ids,whereCondition)=>{
+  console.log(whereCondition,"whereCondition")
+  const couemployeesPunchedInToday = await prisma.am_attendance.findMany({
+    distinct: ['user_id'],
+    where: {
+      user_id: {
+        in: ids
+      },
+      attendance_date:whereCondition.attendance_date
+    },
+    select:{
+      user_id:true
+    }
+  })
+  return couemployeesPunchedInToday.length
+}

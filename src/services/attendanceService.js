@@ -2,6 +2,7 @@ import { prisma } from '../config/prismaClient.js'
 import {
   getUserAttendance,
   getTeamAttendance,
+  getTeamAttendaceCount
 } from '../services/db/attendaceService.db.js'
 import {
   getTotalWorkingDays,
@@ -81,10 +82,12 @@ export const getAttendanceOverviewService = async (
     : 0
   const totalWorkHours = await calculateTotalworkinghours(attendanceRecords)
   const avgWorkHours = presentDays ? (totalWorkHours / totalDays).toFixed(2) : 0
+  const avgHours = Math.floor(avgWorkHours);
+  const avgMinutes = Math.round((avgWorkHours - avgHours) * 60);
   return {
     totalPresent: presentDays,
     attendancePercent: attendancePercent,
-    avgWorkHrs: avgWorkHours,
+    avgWorkHrs: `${avgHours}hr ${avgMinutes}min`,
     leaves: absentDays,
     totalEmployees
   }
@@ -124,21 +127,43 @@ const extractUserIds = async (users, userIds = []) => {
   return userIds
 }
 
-export const getMarkInAttendanceCountService=async ( userId,date,tabValue)=>{
+export const getMarkInAttendanceCountService=async ( userId,filter,tabValue)=>{
+  try{
   if (tabValue === TAB_VALUES.MYTEAM) {
     const employeesData = await getEmployeesHierarchy(userId)
-    console.log(employeesData,"employeesData")
     let totalEmployees =employeesData?.totalCount;
     const employeeUserIds = await getAttendanceForHierarchy(
       employeesData.hierarchy
     )
-    console.log(employeeUserIds,"employeeUserIds");
-    attendanceRecords = await getTeamAttendance(
-      employeeUserIds,
-      startDate,
-      endDate
-    )
-    console.log(attendanceRecords,"attendanceRecords")
+    let whereCondition = {}
+    let startDate,endDate;
+    let markedInAttendanceCount;
     
+    if(filter ==="yesterday"){
+      endDate = new Date();
+      
+      startDate = new Date(new Date().setDate(endDate.getDate() - 1))
+      whereCondition.attendance_date = {
+        gte: startDate,
+        lte: endDate
+    };
+
+      markedInAttendanceCount = await getTeamAttendaceCount(employeeUserIds,whereCondition)
+    }else{
+      const todayDate = new Date();
+      whereCondition.attendance_date = todayDate;
+      markedInAttendanceCount = await getTeamAttendaceCount(employeeUserIds,whereCondition)
+    }
+
+    const attendaceCount ={
+      markedIn:markedInAttendanceCount,
+      notInYet:(totalEmployees - markedInAttendanceCount)
+    }
+
+    return attendaceCount
+  }else{
+    throw new APIError(STATUS_CODES.NOT_ACCEPTABLE,RESPONSE_MESSAGES.ERROR.INVALID_TABVALUE)
   }
+}catch(error){
+throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.RECORD_FETCHING_FAILED)}
 }

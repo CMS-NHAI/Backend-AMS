@@ -247,20 +247,18 @@ export const getAllProjects = async (req, res) => {
 };
 
 export const getTeamAttendanceCount = async(req,res)=>{
-  const { date, tabValue } = req.query;
+  const { dayFilter, tabValue } = req.query;
   try {
-  console.log(date,tabValue,"tabvalue")
-    const userId = req.user?.user_id;
+  const userId = req.user?.user_id;
 
   if(!userId){
     throw new APIError(STATUS_CODES.NOT_FOUND,RESPONSE_MESSAGES.ERROR.USER_ID_MISSING);
-    }
-    const result = await getMarkInAttendanceCountService(userId, date, tabValue)
-
+  }
+    const result = await getMarkInAttendanceCountService(userId, dayFilter, tabValue)
     res.status(STATUS_CODES.OK).json({
       success: true,
       message:RESPONSE_MESSAGES.SUCCESS.ATTENDANCE_RECORDS_FETCHED_SUCCESSFULLY,
-      data,
+      data:result
     })
   } catch (error) {
     if (error instanceof APIError) {
