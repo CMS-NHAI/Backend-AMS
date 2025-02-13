@@ -4,7 +4,10 @@ import { RESPONSE_MESSAGES } from '../../constants/responseMessages.js';
 import { STATUS_CODES } from '../../constants/statusCodeConstants.js';
 import APIError from '../../utils/apiError.js';
 
-export const getUserAttendance = async (userId, startDate, endDate) => {
+export const getUserAttendance = async (userId, startDate, endDate,id) => {
+  if(id){
+    userId =Number(id);
+  }
   return await prisma.am_attendance.findMany({
     where: {
       user_id: userId,
@@ -113,4 +116,40 @@ export const getTeamAttendaceCount=async(ids,whereCondition)=>{
     }
   })
   return couemployeesPunchedInToday.length
+}
+
+export const getTodayAttendance =async(userId,date)=>{
+const todayAttendance = await prisma.am_attendance.findMany({
+where:{
+  user_id:userId,
+  attendance_date:date
+},
+select:{
+  ucc_id:true,
+  check_in_time:true,
+  check_out_time:true,
+  attendance_date:true
+}
+})
+if (todayAttendance.length > 0) {
+  // Use Promise.all to resolve all promises inside the map
+  const finalAttendanceData = await Promise.all(
+    todayAttendance.map(async (data) => {
+      const projectData = await prisma.ucc_master.findFirst({
+        where: {
+          id: data.ucc_id
+        },
+        select: {
+          project_name: true
+        }
+      });
+
+      data.project_name = projectData ? projectData.project_name : null; // Handle case if no project data found
+      return data;
+    })
+  );
+return finalAttendanceData;
+}else{
+  throw new APIError(STATUS_CODES.OK,RESPONSE_MESSAGES.SUCCESS.ATTENDACE_NOT_MARKED)
+}
 }
