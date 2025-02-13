@@ -195,7 +195,7 @@
         const checkInStatus = record.check_in_geofence_status?.toUpperCase();
         const checkOutStatus = record.check_out_geofence_status?.toUpperCase();
         if (checkInStatus === 'OUTSIDE' || checkOutStatus === 'OUTSIDE') {
-          status = 'Offsite Present';
+          status = 'Offsite_Present';
         }
       }
     
@@ -360,7 +360,7 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
             const checkInStatus = record.check_in_geofence_status?.toUpperCase();
             const checkOutStatus = record.check_out_geofence_status?.toUpperCase();
             if (checkInStatus === 'OUTSIDE' || checkOutStatus === 'OUTSIDE') {
-              status = 'Offsite Present';
+              status = 'Offsite_Present';
             }
           }
           if (record.check_in_time) {
