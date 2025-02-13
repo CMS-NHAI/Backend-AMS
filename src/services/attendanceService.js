@@ -82,10 +82,12 @@ export const getAttendanceOverviewService = async (
     : 0
   const totalWorkHours = await calculateTotalworkinghours(attendanceRecords)
   const avgWorkHours = presentDays ? (totalWorkHours / totalDays).toFixed(2) : 0
+  const avgHours = Math.floor(avgWorkHours);
+  const avgMinutes = Math.round((avgWorkHours - avgHours) * 60);
   return {
     totalPresent: presentDays,
     attendancePercent: attendancePercent,
-    avgWorkHrs: avgWorkHours,
+    avgWorkHrs: `${avgHours}hr ${avgMinutes}min`,
     leaves: absentDays,
     totalEmployees
   }
