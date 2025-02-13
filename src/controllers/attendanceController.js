@@ -446,7 +446,6 @@ export const getUserTodayAttendanceData =async(req,res)=>{
 
 }catch(error){
   if (error instanceof APIError) {
-    console.log(error)
     return res.status(error.statusCode).json({
       success: false,
       message: error.message,
