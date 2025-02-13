@@ -142,7 +142,7 @@ const getAttendanceLocationForTeam = async (parentId, date, uccNo) => {
             check_out_lat, 
             check_out_lng, 
             public.ST_AsGeoJSON(check_out_loc) AS check_out_loc
-        FROM am_attendance 
+        FROM tenant_nhai.am_attendance 
         WHERE user_id IN (${Prisma.join(teamUserIds)})
         AND attendance_date = CAST(${date} AS DATE) AND ucc_id = ${uccNo};
     `;
