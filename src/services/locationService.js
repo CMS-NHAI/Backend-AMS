@@ -85,7 +85,7 @@ export const getLocationDetails = async (req, res) => {
 
             return { attendanceData, stretchLineData };
         } else {
-            return res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.INVALID_TYPE });
+            res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.INVALID_TYPE });
         }
     } catch (error) {
         logger.error({
@@ -119,12 +119,12 @@ const getAttendanceLocationForTeam = async (parentId, date, uccNo) => {
     }
 
     const teamUserIds = (await getTeamUserIds(parentId, new Set())).userIds;
-    console.log("Team ", teamUserIds, "Len ", !teamUserIds)
     if (teamUserIds.length > 0) {
-
+        console.log("Team user IDss ::: ", teamUserIds);
+        console.log("DAte ::: ", date);
+        console.log("ucc ID ::::: ", uccNo);
         const teamLocationDetails = await prisma.$queryRaw`
         SELECT 
-
             attendance_id,
             user_id,
             attendance_date,
