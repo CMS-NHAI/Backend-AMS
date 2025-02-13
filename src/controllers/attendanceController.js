@@ -430,12 +430,15 @@ export const checkedInEmployees = async (req, res) => {
 }
 
 export const getUserTodayAttendanceData =async(req,res)=>{
-  const userId = req.user.user_id;
+  const { id } = req.query
+  let userId = req.user.user_id;
   try{
   if (!userId) {
     throw new APIError(STATUS_CODES.UNAUTHORIZED, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING)
   }
-
+  if(id){
+    userId = Number(id)
+  }
   const result =await getUserAttendanceAndProjectDetailsService(userId)
 
   return res.status(STATUS_CODES.OK).json({
