@@ -6,7 +6,7 @@
  */
 
 import { STATUS_CODES } from '../constants/statusCodeConstants.js'
-import { getAttendanceOverviewService ,getMarkInAttendanceCountService} from '../services/attendanceService.js'
+import { getAttendanceOverviewService ,getMarkInAttendanceCountService,getUserAttendanceAndProjectDetailsService} from '../services/attendanceService.js'
 import { getAttendanceService } from '../services/attendanceDetailService.js'
 import { getEmployeesHierarchy, getAttendanceForHierarchy } from '../services/attendanceService.js'
 import { getTeamAttendance,saveAttendance,updateMarkoutAttendance } from '../services/db/attendaceService.db.js';
@@ -26,12 +26,11 @@ const prisma = new PrismaClient();
  */
 
 export const getAttendanceOverview = async (req, res) => {
-  const { filter, tabValue } = req.query
-  // console.log(req,"request");
+  const { filter, tabValue,id } = req.query
   const userId = req.user?.user_id
 
   try {
-    const result = await getAttendanceOverviewService(userId, filter, tabValue)
+    const result = await getAttendanceOverviewService(userId, filter, tabValue,id)
 
     res.status(STATUS_CODES.OK).json({
       success: true,
@@ -39,6 +38,7 @@ export const getAttendanceOverview = async (req, res) => {
       data:{...result},
     })
   } catch (error) {
+    console.log(error,"error")
     if (error instanceof APIError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -427,4 +427,34 @@ export const checkedInEmployees = async (req, res) => {
       message: error.message
     });
   }
+}
+
+export const getUserTodayAttendanceData =async(req,res)=>{
+  const userId = req.user.user_id;
+  try{
+  if (!userId) {
+    throw new APIError(STATUS_CODES.UNAUTHORIZED, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING)
+  }
+
+  const result =await getUserAttendanceAndProjectDetailsService(userId)
+
+  return res.status(STATUS_CODES.OK).json({
+    success:true,
+    message:RESPONSE_MESSAGES.SUCCESS.FETCH_USER_TODAY_ATTENDANCE,
+    data:result
+  })
+
+}catch(error){
+  if (error instanceof APIError) {
+    res.status(error.statusCode).json({
+      success: false,
+      message: error.message,
+      data: null
+    });
+  }
+  res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
+    status: false,
+    message: error.message
+  });
+}
 }

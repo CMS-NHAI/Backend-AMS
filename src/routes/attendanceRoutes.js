@@ -1,7 +1,7 @@
 import express from 'express'
 // import { getUserDetails } from "../services/userService";
 
-import { getAttendanceOverview , getAttendanceDetails, getAllProjects,getTeamAttendanceCount,markAttendance,markOutAttendance, checkedInEmployees} from '../controllers/attendanceController.js'
+import { getAttendanceOverview , getAttendanceDetails, getAllProjects,getTeamAttendanceCount,markAttendance,markOutAttendance, checkedInEmployees,getUserTodayAttendanceData} from '../controllers/attendanceController.js'
 import {validate} from '../middlewares/validate.js'
 import { validateToken } from '../middlewares/validateToken.js'
 import { fetchlocationBydate, fetchNearestProject } from '../controllers/locationController.js'
@@ -23,6 +23,7 @@ router.get("/checkedInEmployees",validateToken, validate(checkedInEmployeesValid
 router.get("/projectDetails",validateToken,validate(projectDetailsValidationSchema, STRING_CONSTANT.QUERY),fetchProjectDetails);
 
 router.post("/markOutAttendance",validateToken,validate(markOutAttendaceSchema),markOutAttendance)
+router.get("/UserTodayAttendance",validateToken,getUserTodayAttendanceData)
 
 
 export default router

@@ -31,7 +31,9 @@ export const RESPONSE_MESSAGES = {
     INVALID_ATTENDANCE_DATA:"Invalid Attendance Data",
     MARKIN_ATTENDANCE_UPDATE_FAILED:"Mark-in attendance Insertion Failed",
     INVALID_TABVALUE:"Invalid Tab Value",
-    RECORD_FETCHING_FAILED:"Attendace Record Fetching Failed"
+    RECORD_FETCHING_FAILED:"Attendace Record Fetching Failed",
+    FAILED_TO_GET_USERS_ATTENDANCE_DATA:"Failed to Fetch User Today Attendance"
+    
   },
   SUCCESS: {
       ANALYTICSFETCHED: 'Attendance analytics fetched successfully.',
@@ -43,6 +45,8 @@ export const RESPONSE_MESSAGES = {
       NO_UCC_FOR_USERID: "No UCC found for the given user's userID.",
       ATTENDACE_MARKED_SUCCESSFULLY: "You've Successfully Marked-in",
       NO_ATENDANCE_RECORD: "No attendance records found for the given user_ids and date",
-      ATTENDACE_MARKED_OUT_SUCCESSFULLY:"You've Successfully Marked-out"
+      ATTENDACE_MARKED_OUT_SUCCESSFULLY:"You've Successfully Marked-out",
+      ATTENDACE_NOT_MARKED:"You haven't marked your attendance for today",
+      FETCH_USER_TODAY_ATTENDANCE:"User Today Attendance Fetched Successfully"
   },
 }

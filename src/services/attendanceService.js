@@ -2,7 +2,8 @@ import { prisma } from '../config/prismaClient.js'
 import {
   getUserAttendance,
   getTeamAttendance,
-  getTeamAttendaceCount
+  getTeamAttendaceCount,
+  getTodayAttendance
 } from '../services/db/attendaceService.db.js'
 import {
   getTotalWorkingDays,
@@ -20,7 +21,8 @@ import APIError from '../utils/apiError.js'
 export const getAttendanceOverviewService = async (
   userId,
   filter,
-  tabValue
+  tabValue,
+  id
 ) => {
   if (!userId) {
       throw new APIError(STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING )
@@ -46,6 +48,9 @@ export const getAttendanceOverviewService = async (
     case FILTERS.LAST_14_DAYS:
       startDate = new Date(new Date().setDate(endDate.getDate() - 14))
       break
+      case FILTERS.LAST_60_DAYS:
+      startDate = new Date(new Date().setDate(endDate.getDate() - 60))
+      break
     default:
       throw new APIError( STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.INVALIDFILTER)
   }
@@ -53,7 +58,7 @@ export const getAttendanceOverviewService = async (
   let attendanceRecords = []
   let totalEmployees ;
   if (tabValue === TAB_VALUES.ME) {
-    attendanceRecords = await getUserAttendance(userId, startDate, endDate)
+    attendanceRecords = await getUserAttendance(userId, startDate, endDate,id)
   } else if (tabValue === TAB_VALUES.MYTEAM) {
     const employeesData = await getEmployeesHierarchy(userId)
     totalEmployees=employeesData?.totalCount;
@@ -166,4 +171,14 @@ export const getMarkInAttendanceCountService=async ( userId,filter,tabValue)=>{
   }
 }catch(error){
 throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.RECORD_FETCHING_FAILED)}
+}
+
+export const getUserAttendanceAndProjectDetailsService=async(userId)=>{
+try{
+  const date = new Date()
+return await getTodayAttendance(userId,date)
+}catch(error){
+throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.FAILED_TO_GET_USERS_ATTENDANCE_DATA)
+}
+
 }
