@@ -1,3 +1,5 @@
+import { prisma } from "../config/prismaClient.js";
+
 export const isSunday = (date) => date.getDay() === 0;
 
 export const getTotalWorkingDays = (filterDays) => {
@@ -11,3 +13,11 @@ export const getTotalWorkingDays = (filterDays) => {
     }
     return days;
   }
+
+export const holidayList = async() =>{
+    const holidayData = await prisma.holiday_master.findMany()
+    if (holidayData.length === 0) {
+      throw new Error('No holidays found.');
+    }
+    return holidayData
+}

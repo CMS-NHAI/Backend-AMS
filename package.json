@@ -8,7 +8,9 @@
     "dev": "cross-env NODE_ENV=development nodemon src --exec babel-node",
     "build": "babel src -d dist",
     "prod": "pm2-runtime start ecosystem.config.js --env production",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "keywords": [],
   "author": "",
@@ -17,6 +19,7 @@
   "dependencies": {
     "@babel/runtime": "^7.26.0",
     "@elastic/elasticsearch": "^8.17.0",
+    "@fast-csv/format": "^5.0.2",
     "@prisma/client": "^6.3.0",
     "@redis/json": "^1.0.7",
     "axios": "^1.7.9",
@@ -55,7 +58,7 @@
     "@babel/node": "^7.26.0",
     "@babel/preset-env": "^7.26.0",
     "nodemon": "^2.0.12",
-    "prettier": "^2.4.0",
-    "prisma": "^6.1.0"
+    "prettier": "^2.8.8",
+    "prisma": "^6.3.0"
   }
 }
