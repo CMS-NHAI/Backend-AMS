@@ -171,13 +171,9 @@ export const projectOverviewDetails = async (userId, uccId, days) => {
         const startDate = new Date()
         startDate.setDate(startDate.getDate() - days);
         const totalUsersCount = await getTotalUsers(userId, uccId)
-        console.log('%csrc\services\projectService.js:174 object', 'color: #007acc;', totalUsersCount);
         const totalPresents = await getUsersPresentCount(uccId, startDate)
-        console.log('%csrc\services\projectService.js:176 object', 'color: #007acc;', totalPresents);
         const totalWorkHours = await calculateTotalworkinghours(totalPresents)
-        console.log('%csrc\services\projectService.js:178 totalWorkHours', 'color: #007acc;', totalWorkHours);
         const totalDays = await getTotalWorkingDays(days)
-        console.log('%csrc\services\projectService.js:180 object', 'color: #007acc;', totalDays);
         const totalAbsent = totalDays - totalPresents.length
         const attendancePercentage = totalUsersCount > 0 ? (((totalPresents.length / (totalUsersCount * totalDays))) * 100).toFixed(2) : 0
         const averageWorkingHours= totalDays ? (totalWorkHours / totalDays).toFixed(2) : 0
