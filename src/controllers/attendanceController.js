@@ -106,18 +106,18 @@ export const getAttendanceDetails = async (req, res) => {
     }
   } else {
     try {
-      if (date) {
-        if (!isNaN(date)) {
-      if(date!=14)
-        {
-            return res.status(STATUS_CODES.BAD_REQUEST).json({
-              success: false,
-              status: STATUS_CODES.BAD_REQUEST,
-              message: RESPONSE_MESSAGES.ERROR.LAST_14_DAYS
-            });
-          }
-        }
-      }
+    //   if (date) {
+    //   if (!isNaN(date)) {
+    //   if(date!=14)
+    //     {
+    //       return res.status(STATUS_CODES.BAD_REQUEST).json({
+    //         success: false,
+    //         status: STATUS_CODES.BAD_REQUEST,
+    //         message: RESPONSE_MESSAGES.ERROR.LAST_14_DAYS
+    //       }); 
+    //     }
+    //   }
+    // }
       const employeesData = await getEmployeesHierarchy(loggedInUserId);
       console.log('employees data ', employeesData);
       const totalEmployees = employeesData?.totalCount;
@@ -142,41 +142,43 @@ export const getAttendanceDetails = async (req, res) => {
         parseInt(limit)
       );
       console.log('result=>>>>>>>>>>>>>>>>> ', result);
-
-      if (exports == 'true') {
-        let exportTeamAttendanceRecords = [];
-
-        result.data.employees.forEach(employee => {
-          if (employee.attendance.length > 0) {
-            // Only add records for employees who have attendance data
-            employee.attendance.forEach(record => {
-              exportTeamAttendanceRecords.push({
-                employee: employee.employee_details.name,
-                designation: employee.employee_details.designation || '-',
-                attendanceStatus: record.status,
-                projectName: record.project_name || '-',
-                totalHours: record.total_hours || '0.00',
-                checkInTime: record.check_in_time ?
-                  new Date(record.check_in_time).toLocaleTimeString() : '-',
-                checkOutTime: record.check_out_time ?
-                  new Date(record.check_out_time).toLocaleTimeString() : '-'
-              });
-            });
-          }
-          // Skip employees with no attendance records
-        });
-
-        const headers = [
-          { id: 'employee', title: 'Employee Name' },
-          { id: 'designation', title: 'Designation' },
-          { id: 'attendanceStatus', title: 'Attendance Status' },
-          { id: 'projectName', title: 'Project Name' },
-          { id: 'totalHours', title: 'Total Working Hours' },
-          { id: 'checkInTime', title: 'Check In Time' },
-          { id: 'checkOutTime', title: 'Check Out Time' }
-        ];
-
-        return await exportToCSV(res, exportTeamAttendanceRecords, "TeamAttendance", headers);
+    
+        if (exports == 'true') {
+          let exportTeamAttendanceRecords = [];
+          
+          result.data.employees.forEach(employee => {
+              if (employee.attendance.length > 0) {
+                  // Only add records for employees who have attendance data
+                  employee.attendance.forEach(record => {
+                      exportTeamAttendanceRecords.push({
+                          employee: employee.employee_details.name,
+                          date : record.attendance_date,
+                          designation: employee.employee_details.designation || '-',
+                          attendanceStatus: record.status,
+                          projectName: record.project_name || '-',
+                          totalHours: record.total_hours || '0.00',
+                          checkInTime: record.check_in_time ? 
+                              new Date(record.check_in_time).toLocaleTimeString() : '-',
+                          checkOutTime: record.check_out_time ? 
+                              new Date(record.check_out_time).toLocaleTimeString() : '-'
+                      });
+                  });
+              }
+              // Skip employees with no attendance records
+          });
+      
+          const headers = [
+              { id: 'employee', title: 'Employee Name' },
+              { id: 'date', title: 'Date' },
+              { id: 'designation', title: 'Designation' },
+              { id: 'attendanceStatus', title: 'Attendance Status' },
+              { id: 'projectName', title: 'Project Name' },
+              { id: 'totalHours', title: 'Total Working Hours' },
+              { id: 'checkInTime', title: 'Check In Time' },
+              { id: 'checkOutTime', title: 'Check Out Time' }
+          ];
+      
+          return await exportToCSV(res, exportTeamAttendanceRecords, "TeamAttendance", headers);
       }
 
 
