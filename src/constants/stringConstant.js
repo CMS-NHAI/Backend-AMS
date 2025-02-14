@@ -7,5 +7,6 @@ export const STRING_CONSTANT = Object.freeze({
     INPROGRESS: "IN_PROGRESS",
     FAILURE: "FAILURE",
     ALL: "all",
-    QUERY: "query"
+    QUERY: "query",
+    PARAMS: "params"
 });

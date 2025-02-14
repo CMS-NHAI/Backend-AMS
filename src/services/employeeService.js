@@ -139,10 +139,10 @@ async function getTotalRecords(filters) {
 }
 
 /**
- * Fetches attendance records for employees managed by the reporting manager (userId),
+ * Fetches team records for employees managed by the Team Head,
  * applying pagination and optional filtering based on uccId.
  * 
- * @param {Object} req - The request object containing query parameters for pagination and uccId filter.
+ * @param {Object} req - The request object containing query and route parameters for pagination and uccId filter.
  * @param {string} userId - The reporting manager's userId used to fetch their team's userIds.
  * 
  * @returns {Object} - Returns an object containing:
@@ -157,7 +157,8 @@ export async function getEmployeesByProject(req, userId) {
         const result = await getTeamUserIds(userId, new Set());
 
         const userIds = result.userIds;
-        const { limit = 10, page = 2, uccId } = req.query;
+        const { limit = 10, page = 2 } = req.query;
+        const uccId = req.params.uccId;
 
         const limitInt = parseInt(limit, 10);
         const pageInt = parseInt(page, 10);
@@ -169,35 +170,34 @@ export async function getEmployeesByProject(req, userId) {
             },
             ucc_id: uccId && uccId !== STRING_CONSTANT.ALL ? uccId : undefined
         };
-        const attendanceRecords = await prisma.am_attendance.findMany({
+        const projectUserIds = await prisma.ucc_user_mappings.findMany({
             where: filters,
-            skip: skip,
-            take: limitInt,
-            include: {
-                user_master: {
-                    select: {
-                        name: true,
-                        designation: true,
-                        user_profile_pic_path: true
-                    }
-                }
+            select: {
+                user_id: true
             }
         });
 
-        const response = attendanceRecords.map(record => ({
-            attendanceId: record.attendance_id,
-            name: record.user_master.name,
-            profilePicPath: record.user_master.user_profile_pic_path,
-            designation: record.user_master.designation,
-            userId: record.user_id
-        }));
+        const employeeDetails = await prisma.user_master.findMany({
+            where: {
+                user_id: {
+                    in: projectUserIds.map(data => data.user_id)
+                }
+            },
+            skip: skip,
+            take: limitInt,
+            select: {
+                name: true,
+                designation: true,
+                user_profile_pic_path: true
+            }
+        });
 
         return {
-            employeeDetails: response,
+            employeeDetails,
             paginationDetails: {
                 limit,
                 page,
-                totalrecords: await getTotalRecords(filters)
+                totalrecords: projectUserIds.length
             }
         };
     } catch (err) {

@@ -8,7 +8,7 @@ import { fetchlocationBydate, fetchNearestProject } from '../controllers/locatio
 
 import { fetchProjectDetails,getProjectOverviewDetail } from '../controllers/projectController.js'
 import { STRING_CONSTANT } from '../constants/stringConstant.js'
-import { markInAttendaceCountSchema,markAttendaceSchema, markOutAttendaceSchema, projectDetailsValidationSchema, checkedInEmployeesValidationSchema, myProjectEmployeesValidationSchema } from '../validations/attendaceValidation.js'
+import { markInAttendaceCountSchema,markAttendaceSchema, markOutAttendaceSchema, projectDetailsValidationSchema, checkedInEmployeesValidationSchema, myProjectEmployeesQueryValidationSchema, myProjectEmployeesParamsValidationSchema } from '../validations/attendaceValidation.js'
 
 const router = express.Router()
 
@@ -23,7 +23,11 @@ router.get("/checkedInEmployees",validateToken, validate(checkedInEmployeesValid
 router.get("/projectDetails",validateToken,validate(projectDetailsValidationSchema, STRING_CONSTANT.QUERY),fetchProjectDetails);
 router.get("/:uccId/projectOverviewDetails",validateToken,getProjectOverviewDetail)
 router.post("/markOutAttendance",validateToken,validate(markOutAttendaceSchema),markOutAttendance)
-router.get("/myProjectEmployees",validateToken, validate(myProjectEmployeesValidationSchema, STRING_CONSTANT.QUERY), fetchEmployeesByProject)
+router.get("/myProjectEmployees/:uccId",validateToken, 
+    validate(myProjectEmployeesQueryValidationSchema, STRING_CONSTANT.QUERY), 
+    validate(myProjectEmployeesParamsValidationSchema, STRING_CONSTANT.PARAMS), 
+    fetchEmployeesByProject
+);
 router.get("/UserTodayAttendance",validateToken,getUserTodayAttendanceData)
 
 

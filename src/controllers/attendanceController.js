@@ -443,6 +443,17 @@ export const checkedInEmployees = async (req, res) => {
   }
 }
 
+/**
+ * Fetches the list of employees by project based on the provided `userId` and query parameters.
+ * It retrieves project details, including employee data, and paginates the results.
+ * If the `userId` is missing or the request fails, appropriate error messages are thrown.
+ * 
+ * @param {Object} req - The request object containing the user details and query parameters
+ * @param {Object} res - The response object used to send the final response back to the client
+ * 
+ * @throws {APIError} - Throws an error if the userId is missing or if any error occurs during the fetch process
+ * @returns {Object} - A JSON response containing the success status, employee data, and pagination details
+ */
 export const fetchEmployeesByProject = async (req, res) => {
   try {
     const userId = req.user.user_id;
