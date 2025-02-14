@@ -167,8 +167,6 @@ export const getProjectDetails = async (req, userId, date, ucc_id) => {
 }
 
 export const projectOverviewDetails = async (userId, uccId, days) => {
-    try {
-
         const startDate = new Date()
         startDate.setDate(startDate.getDate() - days);
         const totalUsersCount = await getTotalUsers(userId, uccId)
@@ -187,7 +185,4 @@ export const projectOverviewDetails = async (userId, uccId, days) => {
             avgWorkHrs: `${avgHours}hr ${avgMinutes}min`,
             leaves: totalAbsent,
           }
-    } catch (error) {
-        throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.FAILED_TO_FETCH_PROJECT_OVERVIEW_DETAILS)
-    }
 }
