@@ -186,6 +186,7 @@ export async function getEmployeesByProject(req, userId) {
             skip: skip,
             take: limitInt,
             select: {
+                user_id: true,
                 name: true,
                 designation: true,
                 user_profile_pic_path: true

@@ -467,6 +467,7 @@ export const fetchEmployeesByProject = async (req, res) => {
       data
     });
   } catch (error) {
+    console.log("Employees by project :: ", error);
     if (error instanceof APIError) {
       res.status(error.statusCode).json({
         success: false,
