@@ -137,3 +137,71 @@ async function getTotalRecords(filters) {
         where: filters
     });
 }
+
+/**
+ * Fetches attendance records for employees managed by the reporting manager (userId),
+ * applying pagination and optional filtering based on uccId.
+ * 
+ * @param {Object} req - The request object containing query parameters for pagination and uccId filter.
+ * @param {string} userId - The reporting manager's userId used to fetch their team's userIds.
+ * 
+ * @returns {Object} - Returns an object containing:
+ *   - `employeeDetails`: A list of employee details with pagination applied.
+ *   - `paginationDetails`: Contains the pagination metadata, including limit, page, and total records.
+ * 
+ * @throws {Error} - Throws an error if there is any issue while fetching the data.
+ */
+export async function getEmployeesByProject(req, userId) {
+    try {
+        logger.info('Fetching employee details based on project.');
+        const result = await getTeamUserIds(userId, new Set());
+
+        const userIds = result.userIds;
+        const { limit = 10, page = 2, uccId } = req.query;
+
+        const limitInt = parseInt(limit, 10);
+        const pageInt = parseInt(page, 10);
+        const skip = (pageInt - 1) * limitInt;
+
+        const filters = {
+            user_id: {
+                in: userIds,
+            },
+            ucc_id: uccId && uccId !== STRING_CONSTANT.ALL ? uccId : undefined
+        };
+        const attendanceRecords = await prisma.am_attendance.findMany({
+            where: filters,
+            skip: skip,
+            take: limitInt,
+            include: {
+                user_master: {
+                    select: {
+                        name: true,
+                        designation: true,
+                        user_profile_pic_path: true
+                    }
+                }
+            }
+        });
+
+        const response = attendanceRecords.map(record => ({
+            attendanceId: record.attendance_id,
+            name: record.user_master.name,
+            profilePicPath: record.user_master.user_profile_pic_path,
+            designation: record.user_master.designation,
+            userId: record.user_id
+        }));
+
+        return {
+            employeeDetails: response,
+            paginationDetails: {
+                limit,
+                page,
+                totalrecords: await getTotalRecords(filters)
+            }
+        };
+    } catch (err) {
+        logger.error(err);
+        throw err;
+    }
+}

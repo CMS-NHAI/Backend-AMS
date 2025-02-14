@@ -270,3 +270,9 @@ export const checkedInEmployeesValidationSchema = Joi.object({
     otherwise: Joi.date().optional(),
   })
 });
+
+export const myProjectEmployeesValidationSchema = Joi.object({
+  limit,
+  page,
+  uccId
+});

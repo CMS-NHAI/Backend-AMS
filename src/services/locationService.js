@@ -27,12 +27,15 @@ export const getLocationDetails = async (req, res) => {
     const type = req.query?.type;
     const attendanceId = req.query?.attendanceId;
 
-    if (!userId || !date || !uccNo || !type || !attendanceId) {
-        return res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.INVALID_REQUEST });
+    if (!userId || !date || !uccNo || !type) {
+        res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.INVALID_REQUEST });
     }
 
     try {
         if (type === STRING_CONSTANT.SINGLE_TYPE) {
+            if (!attendanceId) {
+                return res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.INVALID_REQUEST });
+            }
             const attendanceData = await prisma.$queryRaw`
                 SELECT 
                 attendance_id,
