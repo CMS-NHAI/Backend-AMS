@@ -186,6 +186,7 @@ export const projectOverviewDetails = async (userId, uccId, days) => {
             leaves: totalAbsent,
           }
     } catch (error) {
+        console.log(error,"error");
         throw new APIError(STATUS_CODES.BAD_REQUEST,error.message)
     }
 }
