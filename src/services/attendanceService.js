@@ -174,10 +174,6 @@ throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.RECORD_FETCH
 }
 
 export const getUserAttendanceAndProjectDetailsService=async(userId)=>{
-  try{
   const date = new Date()
   return await getTodayAttendance(userId,date)
-}catch(error){
-  throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.RECORD_FETCHING_FAILED)
-}
 }
