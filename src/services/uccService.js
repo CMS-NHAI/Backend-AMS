@@ -19,7 +19,7 @@ async function fetchUccIdsForUser(userId, req) {
         message: 'Fetching UCC IDs for the given user.',
         method: req.method,
         url: req.url,
-        status: 'success',
+        status: STRING_CONSTANT.SUCCESS,
         time: new Date().toISOString(),
     });
     const attendance = await prisma.am_attendance.findMany({
@@ -36,7 +36,7 @@ async function fetchUccIdsForUser(userId, req) {
             message: "No Ucc found for the given user's user id.",
             method: req.method,
             url: req.url,
-            status: 'success',
+            status: STRING_CONSTANT.SUCCESS,
             time: new Date().toISOString(),
         });
         throw new APIError(STATUS_CODES.NOT_FOUND, RESPONSE_MESSAGES.SUCCESS.NO_UCC_FOUND);
@@ -61,7 +61,7 @@ async function fetchUccIdsForUser(userId, req) {
         message: "Project names based on UCC fetched successfully.",
         method: req.method,
         url: req.url,
-        status: 'success',
+        status: STRING_CONSTANT.SUCCESS,
         time: new Date().toISOString(),
     });
 

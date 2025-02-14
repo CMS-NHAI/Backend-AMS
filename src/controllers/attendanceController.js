@@ -401,6 +401,18 @@ export const markOutAttendance=async (req,res)=>{
   }
 }
 
+/**
+ * Controller method for handling the request to fetch checked-in employees based on filter criteria.
+ * 
+ * This method processes the incoming request, extracts the `userId` from the authenticated user, and 
+ * then calls the `fetchCheckedInEmployees` service to get the attendance details for the checked-in employees.
+ * It returns the data in a paginated format, along with a success message. If an error occurs during
+ * the process (e.g., missing user ID or internal server error), an appropriate error message is returned.
+ * 
+ * @param {Object} req - The request object containing query parameters (filterType, startDate, endDate, etc.) and user authentication data.
+ * @param {Object} res - The response object used to send the response back to the client.
+ * @returns {Object} - JSON response with either the success data or error message.
+ */
 export const checkedInEmployees = async (req, res) => {
   try {
     const userId = req.user.user_id;
@@ -418,7 +430,7 @@ export const checkedInEmployees = async (req, res) => {
     if (error instanceof APIError) {
       res.status(error.statusCode).json({
         success: false,
-        message: error.message,
+        message: error,
         data: result
       });
     }

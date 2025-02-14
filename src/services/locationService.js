@@ -120,9 +120,6 @@ const getAttendanceLocationForTeam = async (parentId, date, uccNo) => {
 
     const teamUserIds = (await getTeamUserIds(parentId, new Set())).userIds;
     if (teamUserIds.length > 0) {
-        console.log("Team user IDss ::: ", teamUserIds);
-        console.log("DAte ::: ", date);
-        console.log("ucc ID ::::: ", uccNo);
         const teamLocationDetails = await prisma.$queryRaw`
         SELECT 
             attendance_id,
