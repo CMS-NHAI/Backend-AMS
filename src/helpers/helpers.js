@@ -20,8 +20,8 @@ export const holidayList = async() =>{
     select: { holiday_Date: true }
   });
 
-    if (holidayData.length === 0) {
-      throw new Error(STATUS_CODES.NOT_FOUND, 'No holidays found.');
-    }
-   return holidayData.map(h => h.holiday_Date.toISOString().split('T')[0]);
+    // if (holidayData.length === 0) {
+    //   throw new APIError(STATUS_CODES.NOT_FOUND,'No holidays found.');
+    // }
+   return holidayData?.map(h => h.holiday_Date.toISOString().split('T')[0]);
 }
