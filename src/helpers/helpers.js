@@ -22,5 +22,5 @@ export const holidayList = async() =>{
     if (holidayData.length === 0) {
       throw new Error('No holidays found.');
     }
-   return holidayData.map(h => h.holiday_date.toISOString().split('T')[0]);
+   return holidayData.map(h => h.holiday_Date.toISOString().split('T')[0]);
 }
