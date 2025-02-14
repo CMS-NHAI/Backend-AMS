@@ -469,6 +469,7 @@ export const fetchEmployeesByProject = async (req, res) => {
       message: error.message
     });
   }
+}
 
 export const getUserTodayAttendanceData =async(req,res)=>{
   const { id } = req.query
