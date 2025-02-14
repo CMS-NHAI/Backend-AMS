@@ -38,7 +38,6 @@ export const getAttendanceOverview = async (req, res) => {
       data:{...result},
     })
   } catch (error) {
-    console.log(error,"error")
     if (error instanceof APIError) {
       return res.status(error.statusCode).json({
         success: false,

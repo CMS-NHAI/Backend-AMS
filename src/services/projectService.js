@@ -167,22 +167,25 @@ export const getProjectDetails = async (req, userId, date, ucc_id) => {
 }
 
 export const projectOverviewDetails = async (userId, uccId, days) => {
+    try{
         const startDate = new Date()
         startDate.setDate(startDate.getDate() - days);
         const totalUsersCount = await getTotalUsers(userId, uccId)
         const totalPresents = await getUsersPresentCount(uccId, startDate)
         const totalWorkHours = await calculateTotalworkinghours(totalPresents)
         const totalDays = await getTotalWorkingDays(days)
-        const totalAbsent = totalUsersCount - totalPresents.length
+        const totalAbsent = totalDays - totalPresents.length
         const attendancePercentage = totalUsersCount > 0 ? (((totalPresents.length / (totalUsersCount * totalDays))) * 100).toFixed(2) : 0
         const averageWorkingHours= totalDays ? (totalWorkHours / totalDays).toFixed(2) : 0
         const avgHours = Math.floor(averageWorkingHours);
         const avgMinutes = Math.round((averageWorkingHours - avgHours) * 60);
-
         return {
             totalPresent: totalPresents.length,
             attendancePercent: attendancePercentage,
             avgWorkHrs: `${avgHours}hr ${avgMinutes}min`,
             leaves: totalAbsent,
           }
+    } catch (error) {
+        throw new APIError(STATUS_CODES.BAD_REQUEST,error.message)
+    }
 }
