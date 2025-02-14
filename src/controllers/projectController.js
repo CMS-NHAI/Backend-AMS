@@ -63,6 +63,7 @@ export const getProjectOverviewDetail =async (req,res)=>{
         data:result
     })
     }catch(error){
+        console.log("Error ::: ", error);
         if (error instanceof APIError) {
             return res.status(error.statusCode).json({
               success: false,

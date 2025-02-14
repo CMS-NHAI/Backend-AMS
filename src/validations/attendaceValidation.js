@@ -271,8 +271,11 @@ export const checkedInEmployeesValidationSchema = Joi.object({
   })
 });
 
-export const myProjectEmployeesValidationSchema = Joi.object({
+export const myProjectEmployeesQueryValidationSchema = Joi.object({
   limit,
-  page,
+  page
+});
+
+export const myProjectEmployeesParamsValidationSchema = Joi.object({
   uccId
 });
