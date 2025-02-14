@@ -15,9 +15,12 @@ export const getTotalWorkingDays = (filterDays) => {
   }
 
 export const holidayList = async() =>{
-    const holidayData = await prisma.holiday_master.findMany()
+  const holidayData = await prisma.holiday_master.findMany({
+    select: { holiday_date: true }
+  });
+
     if (holidayData.length === 0) {
       throw new Error('No holidays found.');
     }
-    return holidayData
+   return holidayData.map(h => h.holiday_date.toISOString().split('T')[0]);
 }

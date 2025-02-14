@@ -102,7 +102,6 @@ export const updateMarkoutAttendance =async(attendanceData) =>{
 }
 
 export const getTeamAttendaceCount=async(ids,whereCondition)=>{
-  console.log(whereCondition,"whereCondition")
   const couemployeesPunchedInToday = await prisma.am_attendance.findMany({
     distinct: ['user_id'],
     where: {
@@ -118,38 +117,97 @@ export const getTeamAttendaceCount=async(ids,whereCondition)=>{
   return couemployeesPunchedInToday.length
 }
 
-export const getTodayAttendance =async(userId,date)=>{
-const todayAttendance = await prisma.am_attendance.findMany({
-where:{
-  user_id:userId,
-  attendance_date:date
-},
-select:{
-  ucc_id:true,
-  check_in_time:true,
-  check_out_time:true,
-  attendance_date:true
-}
-})
-if (todayAttendance.length > 0) {
-  // Use Promise.all to resolve all promises inside the map
-  const finalAttendanceData = await Promise.all(
-    todayAttendance.map(async (data) => {
-      const projectData = await prisma.ucc_master.findFirst({
-        where: {
-          id: data.ucc_id
-        },
-        select: {
-          project_name: true
-        }
-      });
+export const getTodayAttendance = async (userId, date) => {
+  const todayAttendance = await prisma.am_attendance.findMany({
+    where: {
+      user_id: userId,
+      attendance_date: date
+    },
+    select: {
+      ucc_id: true,
+      check_in_time: true,
+      check_out_time: true,
+      attendance_date: true,
+      check_in_geofence_status: true,
+      check_out_geofence_status: true
+    }
+  });
 
-      data.project_name = projectData ? projectData.project_name : null; // Handle case if no project data found
-      return data;
-    })
+  if (todayAttendance.length === 0) {
+    throw new APIError(STATUS_CODES.OK, RESPONSE_MESSAGES.SUCCESS.ATTENDANCE_NOT_MARKED);
+  }
+
+  // Get unique UCC IDs to avoid duplicate queries
+  const uccIds = (todayAttendance.map((data) => data.ucc_id));
+
+  // Fetch all project data in a single query
+  const projectDataMap = await prisma.ucc_master.findMany({
+    where: {
+      id: { in: uccIds } // Fetch all relevant projects at once
+    },
+    select: {
+      id: true,
+      project_name: true
+    }
+  }).then((projects) =>
+    projects.reduce((acc, project) => {
+      acc[project.id] = project.project_name;
+      return acc;
+    }, {})
   );
-return finalAttendanceData;
-}else{
-  throw new APIError(STATUS_CODES.OK,RESPONSE_MESSAGES.SUCCESS.ATTENDACE_NOT_MARKED)
+
+  // Process attendance data
+  const finalAttendanceData = todayAttendance.map((data) => {
+    data.project_name = projectDataMap[data.ucc_id] || null;
+
+    if (data.check_in_time) {
+      data.attendanceStatus = "Present";
+    }
+
+    if (data.check_in_geofence_status) {
+      if (
+        data.check_in_geofence_status.toLowerCase() === "inside" &&
+        data.check_out_geofence_status?.toLowerCase() === "inside"
+      ) {
+        data.locationStatus = "Onsite";
+      } else {
+        data.locationStatus = "Offsite";
+      }
+    }
+
+    if (data.check_in_time && data.check_out_time) {
+      const totalMilliseconds = data.check_out_time - data.check_in_time;
+      data.totalWorkinghrs = `${Math.floor(totalMilliseconds / (1000 * 60 * 60))} hrs ${Math.floor((totalMilliseconds % (1000 * 60 * 60)) / (1000 * 60))} mins`;
+    }
+
+    return data;
+  });
+
+  return finalAttendanceData;
+
 }
+
+export const getTotalUsers=async (userId,uccId)=>{
+
+  const userCount =  await prisma.ucc_user_mappings.findMany({
+    distinct: ['user_id'],
+    where:{
+      ucc_id:uccId
+    }
+  })
+  return userCount.length
+
+}
+
+export const getUsersPresentCount = async (uccId,startDate) => {
+const presentCount = await prisma.am_attendance.findMany({
+  distinct:['user_id'],
+  where:{
+    ucc_id:uccId,
+    attendance_date:{
+      gte:startDate
+    }
+  }
+})
+return presentCount
 }

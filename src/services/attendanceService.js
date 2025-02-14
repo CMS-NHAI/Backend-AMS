@@ -74,19 +74,19 @@ export const getAttendanceOverviewService = async (
     
   }
 
-  const totalDays = getTotalWorkingDays(filter).length
+  const totalDays = await getTotalWorkingDays(filter)
   const presentDays = attendanceRecords.filter((record) =>
     // [ATTENDANCE_STATUS.PRESENT, ATTENDANCE_STATUS.LATE].includes(
     //   record.status.toUpperCase()
     // )
     record.check_in_time !== null
   ).length
-  const absentDays = totalDays - presentDays
+  const absentDays = totalDays?(totalDays - presentDays) : 0
   const attendancePercent = totalDays
     ? ((presentDays / totalDays) * 100).toFixed(2)
     : 0
   const totalWorkHours = await calculateTotalworkinghours(attendanceRecords)
-  const avgWorkHours = presentDays ? (totalWorkHours / totalDays).toFixed(2) : 0
+  const avgWorkHours = totalDays ? (totalWorkHours / totalDays).toFixed(2) : 0
   const avgHours = Math.floor(avgWorkHours);
   const avgMinutes = Math.round((avgWorkHours - avgHours) * 60);
   return {
@@ -174,6 +174,10 @@ throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.RECORD_FETCH
 }
 
 export const getUserAttendanceAndProjectDetailsService=async(userId)=>{
+  try{
   const date = new Date()
   return await getTodayAttendance(userId,date)
+}catch(error){
+  throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.RECORD_FETCHING_FAILED)
+}
 }
