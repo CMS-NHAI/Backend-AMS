@@ -3,12 +3,18 @@
   import { RESPONSE_MESSAGES } from '../constants/responseMessages.js'
   import APIError from '../utils/apiError.js'
 
-  export const getAttendanceService = async (userId, month, year, project_id, page = 1, limit = 10) => {
+  export const getAttendanceService = async (userId, month, year, project_id, page = 1, limit = 10, date) => {
     if (!userId) {
       throw new APIError(STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING)
     }
-  
-    const dateRange = calculateDateRange(month, year)
+    let dateRange = null;
+    if(!date)
+    {
+     dateRange = calculateDateRange(month, year)
+    }
+    else{
+        dateRange = calculateDateRange(month, year, date);
+    }
     
     if (project_id) {
       await validateProject(project_id)

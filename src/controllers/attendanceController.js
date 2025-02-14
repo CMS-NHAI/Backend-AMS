@@ -65,7 +65,7 @@ export const getAttendanceDetails = async (req, res) => {
     try {
 
       const targetUserId = (tabValue === TAB_VALUES.ME && user_id) ? parseInt(user_id): loggedInUserId;
-      const result = await getAttendanceService(targetUserId, month, year, project_id, parseInt(page), parseInt(limit));
+      const result = await getAttendanceService(targetUserId, month, year, project_id, parseInt(page), parseInt(limit), date);
       if(exports == 'true' && tabValue == TAB_VALUES.ME){
         // Export logic remains the same
         const exportAttendanceRecords = result.data.attendance.map(record => ({
