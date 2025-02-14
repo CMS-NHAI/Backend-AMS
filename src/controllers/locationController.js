@@ -18,7 +18,7 @@ import { logger } from "../utils/logger.js";
 export const fetchlocationBydate = async (req, res) => {
     try {
         const locationDetails = await getLocationDetails(req, res);
-        res.status(200).json({
+        res.status(STATUS_CODES.OK).json({
             success: true,
             data: locationDetails
         });
@@ -31,6 +31,10 @@ export const fetchlocationBydate = async (req, res) => {
             url: req.url,
             method: req.method,
             time: new Date().toISOString(),
+        });
+        res.status(err.status || STATUS_CODES.INTERNAL_SERVER_ERROR).json({
+            success: false,
+            message: err.message
         });
 
     }

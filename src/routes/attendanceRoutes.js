@@ -1,14 +1,14 @@
 import express from 'express'
 // import { getUserDetails } from "../services/userService";
 
-import { getAttendanceOverview , getAttendanceDetails, getAllProjects,getTeamAttendanceCount,markAttendance,markOutAttendance, checkedInEmployees} from '../controllers/attendanceController.js'
+import { getAttendanceOverview , getAttendanceDetails, getAllProjects,getTeamAttendanceCount,markAttendance,markOutAttendance, checkedInEmployees,getUserTodayAttendanceData, fetchEmployeesByProject} from '../controllers/attendanceController.js'
 import {validate} from '../middlewares/validate.js'
 import { validateToken } from '../middlewares/validateToken.js'
 import { fetchlocationBydate, fetchNearestProject } from '../controllers/locationController.js'
 
-import { fetchProjectDetails } from '../controllers/projectController.js'
+import { fetchProjectDetails,getProjectOverviewDetail } from '../controllers/projectController.js'
 import { STRING_CONSTANT } from '../constants/stringConstant.js'
-import { markInAttendaceCountSchema,markAttendaceSchema, markOutAttendaceSchema, projectDetailsValidationSchema } from '../validations/attendaceValidation.js'
+import { markInAttendaceCountSchema,markAttendaceSchema, markOutAttendaceSchema, projectDetailsValidationSchema, checkedInEmployeesValidationSchema, myProjectEmployeesQueryValidationSchema, myProjectEmployeesParamsValidationSchema } from '../validations/attendaceValidation.js'
 
 const router = express.Router()
 
@@ -19,10 +19,16 @@ router.get("/locationByDate", validateToken, fetchlocationBydate);
 router.get("/nearestUcc", validateToken, fetchNearestProject);
 router.get("/getMarkedInAttendaceCount",validateToken,validate(markInAttendaceCountSchema,"query"),getTeamAttendanceCount)
 router.post("/markAttendance",validateToken,validate(markAttendaceSchema),markAttendance)
-router.get("/checkedInEmployees",validateToken,checkedInEmployees);
+router.get("/checkedInEmployees",validateToken, validate(checkedInEmployeesValidationSchema, STRING_CONSTANT.QUERY), checkedInEmployees);
 router.get("/projectDetails",validateToken,validate(projectDetailsValidationSchema, STRING_CONSTANT.QUERY),fetchProjectDetails);
-
+router.get("/:uccId/projectOverviewDetails",validateToken,getProjectOverviewDetail)
 router.post("/markOutAttendance",validateToken,validate(markOutAttendaceSchema),markOutAttendance)
+router.get("/myProjectEmployees/:uccId",validateToken, 
+    validate(myProjectEmployeesQueryValidationSchema, STRING_CONSTANT.QUERY), 
+    validate(myProjectEmployeesParamsValidationSchema, STRING_CONSTANT.PARAMS), 
+    fetchEmployeesByProject
+);
+router.get("/UserTodayAttendance",validateToken,getUserTodayAttendanceData)
 
 
 export default router

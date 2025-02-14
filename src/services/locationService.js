@@ -2,11 +2,13 @@
  * @author Deepak
  */
 
+import { Prisma } from "@prisma/client";
 import { prisma } from "../config/prismaClient.js";
 import { RESPONSE_MESSAGES } from "../constants/responseMessages.js";
 import { STATUS_CODES } from "../constants/statusCodeConstants.js";
 import { STRING_CONSTANT } from "../constants/stringConstant.js";
 import { LocationServiceError } from "../exception/LocationServiceError.js";
+import { getTeamUserIds } from "../helpers/attendanceHelper.js";
 import { logger } from "../utils/logger.js";
 
 
@@ -25,12 +27,15 @@ export const getLocationDetails = async (req, res) => {
     const type = req.query?.type;
     const attendanceId = req.query?.attendanceId;
 
-    if (!userId || !date || !uccNo || !type || !attendanceId) {
-        return res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.INVALID_REQUEST });
+    if (!userId || !date || !uccNo || !type) {
+        res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.INVALID_REQUEST });
     }
 
     try {
         if (type === STRING_CONSTANT.SINGLE_TYPE) {
+            if (!attendanceId) {
+                return res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.INVALID_REQUEST });
+            }
             const attendanceData = await prisma.$queryRaw`
                 SELECT 
                 attendance_id,
@@ -67,24 +72,23 @@ export const getLocationDetails = async (req, res) => {
             return { attendanceData, stretchLineData };
 
         } else if (type === STRING_CONSTANT.MULTIPLE_TYPE) {
-            // const attendanceData = await getAttendanceLocationForTeam(userId, date, uccNo);
+            const attendanceData = await getAttendanceLocationForTeam(userId, date, uccNo);
 
-            // if (attendanceData.length > 0) {
-            //     attendanceData.map(data => {
-            //         data.check_out_loc = JSON.parse(data.check_out_loc);
-            //         data.check_in_loc = JSON.parse(data.check_in_loc);
-            //     });
-            // } else {
-            //     res.status(200).json({ status: true, data: { message: RESPONSE_MESSAGES.SUCCESS.NO_TEAM_MEMBERS } })
-            // }
+            if (attendanceData.length > 0) {
+                attendanceData.map(data => {
+                    data.check_out_loc = JSON.parse(data.check_out_loc);
+                    data.check_in_loc = JSON.parse(data.check_in_loc);
+                });
+            } else {
+                res.status(200).json({ status: true, data: { message: RESPONSE_MESSAGES.SUCCESS.NO_TEAM_MEMBERS } })
+            }
 
 
-            // const stretchLineData = await getGisData(uccNo);
+            const stretchLineData = await getGisData(uccNo);
 
-            // return { attendanceData, stretchLineData };
-            return {message: "Commented"};
+            return { attendanceData, stretchLineData };
         } else {
-            return res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.INVALID_TYPE });
+            res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.INVALID_TYPE });
         }
     } catch (error) {
         logger.error({
@@ -94,7 +98,7 @@ export const getLocationDetails = async (req, res) => {
             method: req.method,
             time: new Date().toISOString(),
         });
-        res.status(500).json({ status: false, message: RESPONSE_MESSAGES.ERROR.SERVERERROR });
+        throw error;
     }
 }
 
@@ -107,76 +111,46 @@ export const getLocationDetails = async (req, res) => {
  * @returns Team members attendance location 
  */
 const getAttendanceLocationForTeam = async (parentId, date, uccNo) => {
-    // const parentIdCheckValue = await prisma.user_master.findUnique({
-    //     where: {
-    //         user_id: parentId
-    //     }
-    // });
-
-    // if (!parentIdCheckValue) {
-    //     throw new LocationServiceError("User id is not available.", STATUS_CODES.BAD_REQUEST);
-    // }
-
-    // const teamUserIds = await getTeamUserIds(parentId, new Set());
-
-    // if (teamUserIds.length > 0) {
-
-    //     const teamLocationDetails = await prisma.$queryRaw`
-    //     SELECT 
-    //         attendance_id,
-    //         user_id,
-    //         attendance_date,
-    //         status,
-    //         check_in_time,
-    //         check_in_lat, 
-    //         check_in_lng, 
-    //         ST_AsGeoJSON(check_in_loc) AS check_in_loc, 
-    //         check_out_time,
-    //         check_out_lat, 
-    //         check_out_lng, 
-    //         ST_AsGeoJSON(check_out_loc) AS check_out_loc, 
-    //         accuracy, 
-    //         geofence_status 
-    //     FROM am_attendance 
-    //     WHERE user_id IN (${Prisma.join(teamUserIds)})
-    //     AND attendance_date = CAST(${date} AS DATE) AND ucc_id = ${uccNo};
-    // `;
-
-    //     return teamLocationDetails;
-    // } else {
-    //     return [];
-    // }
-}
-
-/**
- * Fetch provided userId reporting person's userID's.
- * 
- * @param userId User id for which team user id's need to be fetched.
- * @param visitedUserId Set of user id's for which parent is already traversed.
- * @returns List of team user ID's.
- */
-const getTeamUserIds = async (userId, visitedUserId = new Set()) => {
-    if (visitedUserId.has(userId)) {
-        // Return empty array to prevent infinite recurssion due to circular dependency
-        return [];
-    }
-
-    visitedUserId.add(userId);
-
-    const teamUserIds = await prisma.user_master.findMany({
+    const parentIdCheckValue = await prisma.user_master.findUnique({
         where: {
-            parent_id: userId
-        }, select: {
-            user_id: true
+            user_id: parentId
         }
     });
 
-    const memberUserIds = await Promise.all(
-        teamUserIds.map(
-            async (memberUser) => [memberUser.user_id, ...(await getTeamUserIds(memberUser.user_id, visitedUserId))]
-        ));
+    if (!parentIdCheckValue) {
+        throw new LocationServiceError("User id is not available.", STATUS_CODES.BAD_REQUEST);
+    }
 
-    return memberUserIds.flat();
+    const teamUserIds = (await getTeamUserIds(parentId, new Set())).userIds;
+    if (teamUserIds.length > 0) {
+        const teamLocationDetails = await prisma.$queryRaw`
+        SELECT 
+            attendance_id,
+            user_id,
+            attendance_date,
+            check_in_geofence_status,
+            check_in_remarks,
+            check_in_accuracy,
+            check_in_time,
+            check_in_lat, 
+            check_in_lng, 
+            public.ST_AsGeoJSON(check_in_loc) AS check_in_loc, 
+            check_out_geofence_status,
+            check_out_remarks,
+            check_out_accuracy,
+            check_out_time,
+            check_out_lat, 
+            check_out_lng, 
+            public.ST_AsGeoJSON(check_out_loc) AS check_out_loc
+        FROM tenant_nhai.am_attendance 
+        WHERE user_id IN (${Prisma.join(teamUserIds)})
+        AND attendance_date = CAST(${date} AS DATE) AND ucc_id = ${uccNo};
+    `;
+
+        return teamLocationDetails;
+    } else {
+        return [];
+    }
 }
 
 /**
@@ -287,7 +261,7 @@ async function calculateAndAddDistance(attendanceId, attendanceDate, uccId, atte
         source_ucc_id, location_type, distance_in_meters ASC;
     `;
 
-    if(!result)
+    if (!result)
         throw new LocationServiceError("Unable to calculate the distnace. ");
 
     attendanceData.forEach(attendance => {

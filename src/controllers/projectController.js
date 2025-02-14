@@ -3,7 +3,7 @@
  */
 import { RESPONSE_MESSAGES } from "../constants/responseMessages.js";
 import { STATUS_CODES } from "../constants/statusCodeConstants.js";
-import { getProjectDetails } from "../services/projectService.js";
+import { getProjectDetails,projectOverviewDetails } from "../services/projectService.js";
 import APIError from "../utils/apiError.js";
 import { logger } from "../utils/logger.js";
 
@@ -44,3 +44,36 @@ export const fetchProjectDetails = async (req, res) => {
         });
     }
 }
+
+export const getProjectOverviewDetail =async (req,res)=>{
+    try{
+        const {filter} = req.query;
+        const days = filter === "30" ? 30 : filter === "14" ? 14 : 7;
+     const userId = req.user.user_id;
+     const {uccId} =req.params
+
+     if (!userId) {
+        throw new APIError(STATUS_CODES.UNAUTHORIZED, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING);
+    }
+
+    const result =await projectOverviewDetails(userId,uccId,days);
+    return res.status(STATUS_CODES.OK).json({
+        success:true,
+        message:RESPONSE_MESSAGES.SUCCESS.PROJECT_OVERVIEW_DETAILS_FETCHED,
+        data:result
+    })
+    }catch(error){
+        console.log("Error ::: ", error);
+        if (error instanceof APIError) {
+            return res.status(error.statusCode).json({
+              success: false,
+              message: error.message,
+              data: null
+            });
+          }
+          res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
+            status: false,
+            message: error.message
+          });
+        }
+    }
