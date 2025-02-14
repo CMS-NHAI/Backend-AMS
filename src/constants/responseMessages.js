@@ -32,7 +32,8 @@ export const RESPONSE_MESSAGES = {
     MARKIN_ATTENDANCE_UPDATE_FAILED:"Mark-in attendance Insertion Failed",
     INVALID_TABVALUE:"Invalid Tab Value",
     RECORD_FETCHING_FAILED:"Attendace Record Fetching Failed",
-    FAILED_TO_GET_USERS_ATTENDANCE_DATA:"Failed to Fetch User Today Attendance"
+    FAILED_TO_GET_USERS_ATTENDANCE_DATA:"Failed to Fetch User Today Attendance",
+    FAILED_TO_FETCH_PROJECT_OVERVIEW_DETAILS:"Failed to Fetch Project Overview Details"
     
   },
   SUCCESS: {
@@ -46,7 +47,8 @@ export const RESPONSE_MESSAGES = {
       ATTENDACE_MARKED_SUCCESSFULLY: "You've Successfully Marked-in",
       NO_ATENDANCE_RECORD: "No attendance records found for the given user_ids and date",
       ATTENDACE_MARKED_OUT_SUCCESSFULLY:"You've Successfully Marked-out",
-      ATTENDACE_NOT_MARKED:"You haven't marked your attendance for today",
-      FETCH_USER_TODAY_ATTENDANCE:"User Today Attendance Fetched Successfully"
+      ATTENDANCE_NOT_MARKED:"You haven't marked your attendance for today",
+      FETCH_USER_TODAY_ATTENDANCE:"User Today Attendance Fetched Successfully",
+      PROJECT_OVERVIEW_DETAILS_FETCHED:"Project Overview Details Fetched Successfully"
   },
 }
