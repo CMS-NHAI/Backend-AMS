@@ -8,7 +8,8 @@ import { STRING_CONSTANT } from "../constants/stringConstant.js";
 import { getTeamUserIds } from "../helpers/attendanceHelper.js";
 import APIError from "../utils/apiError.js";
 import { logger } from "../utils/logger.js";
-
+import { getTotalUsers, getUsersPresentCount } from "./db/attendaceService.db.js";
+import { calculateTotalworkinghours,getTotalWorkingDays } from "../helpers/attendanceHelper.js";
 /**
  * Fetches project attendance details for a team based on the provided user ID, date, and UCC ID.
  * This function calculates the total employees and present employees percentage for each UCC project
@@ -162,5 +163,31 @@ export const getProjectDetails = async (req, userId, date, ucc_id) => {
         };
     } catch (error) {
         throw error
+    }
+}
+
+export const projectOverviewDetails = async (userId, uccId, days) => {
+    try {
+
+        const startDate = new Date()
+        startDate.setDate(startDate.getDate() - days);
+        const totalUsersCount = await getTotalUsers(userId, uccId)
+        const totalPresents = await getUsersPresentCount(uccId, startDate)
+        const totalWorkHours = await calculateTotalworkinghours(totalPresents)
+        const totalDays = await getTotalWorkingDays(days)
+        const totalAbsent = totalUsersCount - totalPresents.length
+        const attendancePercentage = totalUsersCount > 0 ? (((totalPresents.length / (totalUsersCount * totalDays))) * 100).toFixed(2) : 0
+        const averageWorkingHours= totalDays ? (totalWorkHours / totalDays).toFixed(2) : 0
+        const avgHours = Math.floor(averageWorkingHours);
+        const avgMinutes = Math.round((averageWorkingHours - avgHours) * 60);
+
+        return {
+            totalPresent: totalPresents.length,
+            attendancePercent: attendancePercentage,
+            avgWorkHrs: `${avgHours}hr ${avgMinutes}min`,
+            leaves: totalAbsent,
+          }
+    } catch (error) {
+        throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.FAILED_TO_FETCH_PROJECT_OVERVIEW_DETAILS)
     }
 }

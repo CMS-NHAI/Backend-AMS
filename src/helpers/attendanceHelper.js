@@ -1,17 +1,19 @@
 import { prisma } from "../config/prismaClient.js"
-
+import { holidayList } from "./helpers.js"
 export const isSunday = (date) => date.getDay() === 0
 
-export const getTotalWorkingDays = (filterDays) => {
+export const getTotalWorkingDays = async(filterDays) => {
   let days = []
+  const holidays = await holidayList()
   for (let i = 1; i <= parseInt(filterDays); i++) {
     let date = new Date()
     date.setDate(date.getDate() - i)
-    if (!isSunday(date)) {
+    let formattedDate = date.toISOString().split('T')[0];
+    if (!isSunday(date) && !holidays.includes(formattedDate)) {
       days.push(date)
     }
   }
-  return days
+  return days.length
 }
 
 export const calculateTotalworkinghours = (attendanceRecords) => {
@@ -21,7 +23,6 @@ export const calculateTotalworkinghours = (attendanceRecords) => {
       // new Date(`${record.date}T${record.check_in_time}:00Z`);
       let checkOut = record.check_out_time
       //  new Date(`${record.date}T${record.check_out_time}:00Z`);
-
       if (checkOut < checkIn) {
         checkOut.setDate(checkOut.getDate() + 1) // Handle midnight crossing
       } //attendanceRecord variable will give the values

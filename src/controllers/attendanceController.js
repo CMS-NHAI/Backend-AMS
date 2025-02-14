@@ -6,7 +6,7 @@
  */
 
 import { STATUS_CODES } from '../constants/statusCodeConstants.js'
-import { getAttendanceOverviewService ,getMarkInAttendanceCountService} from '../services/attendanceService.js'
+import { getAttendanceOverviewService ,getMarkInAttendanceCountService,getUserAttendanceAndProjectDetailsService} from '../services/attendanceService.js'
 import { getAttendanceService } from '../services/attendanceDetailService.js'
 import { getEmployeesHierarchy, getAttendanceForHierarchy } from '../services/attendanceService.js'
 import { getTeamAttendance,saveAttendance,updateMarkoutAttendance } from '../services/db/attendaceService.db.js';
@@ -26,12 +26,11 @@ const prisma = new PrismaClient();
  */
 
 export const getAttendanceOverview = async (req, res) => {
-  const { filter, tabValue } = req.query
-  // console.log(req,"request");
+  const { filter, tabValue,id } = req.query
   const userId = req.user?.user_id
 
   try {
-    const result = await getAttendanceOverviewService(userId, filter, tabValue)
+    const result = await getAttendanceOverviewService(userId, filter, tabValue,id)
 
     res.status(STATUS_CODES.OK).json({
       success: true,
@@ -39,6 +38,7 @@ export const getAttendanceOverview = async (req, res) => {
       data:{...result},
     })
   } catch (error) {
+    console.log(error,"error")
     if (error instanceof APIError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -65,7 +65,7 @@ export const getAttendanceDetails = async (req, res) => {
     try {
 
       const targetUserId = (tabValue === TAB_VALUES.ME && user_id) ? parseInt(user_id): loggedInUserId;
-      const result = await getAttendanceService(targetUserId, month, year, project_id, parseInt(page), parseInt(limit));
+      const result = await getAttendanceService(targetUserId, month, year, project_id, parseInt(page), parseInt(limit), date);
       if(exports == 'true' && tabValue == TAB_VALUES.ME){
         // Export logic remains the same
         const exportAttendanceRecords = result.data.attendance.map(record => ({
@@ -106,18 +106,18 @@ export const getAttendanceDetails = async (req, res) => {
     }
   } else {
     try {
-      if (date) {
-        if (!isNaN(date)) {
-      if(date!=14)
-        {
-            return res.status(STATUS_CODES.BAD_REQUEST).json({
-              success: false,
-              status: STATUS_CODES.BAD_REQUEST,
-              message: RESPONSE_MESSAGES.ERROR.LAST_14_DAYS
-            });
-          }
-        }
-      }
+    //   if (date) {
+    //   if (!isNaN(date)) {
+    //   if(date!=14)
+    //     {
+    //       return res.status(STATUS_CODES.BAD_REQUEST).json({
+    //         success: false,
+    //         status: STATUS_CODES.BAD_REQUEST,
+    //         message: RESPONSE_MESSAGES.ERROR.LAST_14_DAYS
+    //       }); 
+    //     }
+    //   }
+    // }
       const employeesData = await getEmployeesHierarchy(loggedInUserId);
       console.log('employees data ', employeesData);
       const totalEmployees = employeesData?.totalCount;
@@ -142,41 +142,43 @@ export const getAttendanceDetails = async (req, res) => {
         parseInt(limit)
       );
       console.log('result=>>>>>>>>>>>>>>>>> ', result);
-
-      if (exports == 'true') {
-        let exportTeamAttendanceRecords = [];
-
-        result.data.employees.forEach(employee => {
-          if (employee.attendance.length > 0) {
-            // Only add records for employees who have attendance data
-            employee.attendance.forEach(record => {
-              exportTeamAttendanceRecords.push({
-                employee: employee.employee_details.name,
-                designation: employee.employee_details.designation || '-',
-                attendanceStatus: record.status,
-                projectName: record.project_name || '-',
-                totalHours: record.total_hours || '0.00',
-                checkInTime: record.check_in_time ?
-                  new Date(record.check_in_time).toLocaleTimeString() : '-',
-                checkOutTime: record.check_out_time ?
-                  new Date(record.check_out_time).toLocaleTimeString() : '-'
-              });
-            });
-          }
-          // Skip employees with no attendance records
-        });
-
-        const headers = [
-          { id: 'employee', title: 'Employee Name' },
-          { id: 'designation', title: 'Designation' },
-          { id: 'attendanceStatus', title: 'Attendance Status' },
-          { id: 'projectName', title: 'Project Name' },
-          { id: 'totalHours', title: 'Total Working Hours' },
-          { id: 'checkInTime', title: 'Check In Time' },
-          { id: 'checkOutTime', title: 'Check Out Time' }
-        ];
-
-        return await exportToCSV(res, exportTeamAttendanceRecords, "TeamAttendance", headers);
+    
+        if (exports == 'true') {
+          let exportTeamAttendanceRecords = [];
+          
+          result.data.employees.forEach(employee => {
+              if (employee.attendance.length > 0) {
+                  // Only add records for employees who have attendance data
+                  employee.attendance.forEach(record => {
+                      exportTeamAttendanceRecords.push({
+                          employee: employee.employee_details.name,
+                          date : record.attendance_date,
+                          designation: employee.employee_details.designation || '-',
+                          attendanceStatus: record.status,
+                          projectName: record.project_name || '-',
+                          totalHours: record.total_hours || '0.00',
+                          checkInTime: record.check_in_time ? 
+                              new Date(record.check_in_time).toLocaleTimeString() : '-',
+                          checkOutTime: record.check_out_time ? 
+                              new Date(record.check_out_time).toLocaleTimeString() : '-'
+                      });
+                  });
+              }
+              // Skip employees with no attendance records
+          });
+      
+          const headers = [
+              { id: 'employee', title: 'Employee Name' },
+              { id: 'date', title: 'Date' },
+              { id: 'designation', title: 'Designation' },
+              { id: 'attendanceStatus', title: 'Attendance Status' },
+              { id: 'projectName', title: 'Project Name' },
+              { id: 'totalHours', title: 'Total Working Hours' },
+              { id: 'checkInTime', title: 'Check In Time' },
+              { id: 'checkOutTime', title: 'Check Out Time' }
+          ];
+      
+          return await exportToCSV(res, exportTeamAttendanceRecords, "TeamAttendance", headers);
       }
 
 
@@ -441,7 +443,6 @@ export const checkedInEmployees = async (req, res) => {
   }
 }
 
-
 export const fetchEmployeesByProject = async (req, res) => {
   try {
     const userId = req.user.user_id;
@@ -468,4 +469,36 @@ export const fetchEmployeesByProject = async (req, res) => {
       message: error.message
     });
   }
+
+export const getUserTodayAttendanceData =async(req,res)=>{
+  const { id } = req.query
+  let userId = req.user.user_id;
+  try{
+  if (!userId) {
+    throw new APIError(STATUS_CODES.UNAUTHORIZED, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING)
+  }
+  if(id){
+    userId = Number(id)
+  }
+  const result =await getUserAttendanceAndProjectDetailsService(userId)
+
+  return res.status(STATUS_CODES.OK).json({
+    success:true,
+    message:RESPONSE_MESSAGES.SUCCESS.FETCH_USER_TODAY_ATTENDANCE,
+    data:result
+  })
+
+}catch(error){
+  if (error instanceof APIError) {
+    return res.status(error.statusCode).json({
+      success: false,
+      message: error.message,
+      data: null
+    });
+  }
+  res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
+    status: false,
+    message: error.message
+  });
+}
 }

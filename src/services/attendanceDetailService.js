@@ -3,12 +3,18 @@
   import { RESPONSE_MESSAGES } from '../constants/responseMessages.js'
   import APIError from '../utils/apiError.js'
 
-  export const getAttendanceService = async (userId, month, year, project_id, page = 1, limit = 10) => {
+  export const getAttendanceService = async (userId, month, year, project_id, page = 1, limit = 10, date) => {
     if (!userId) {
       throw new APIError(STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING)
     }
-  
-    const dateRange = calculateDateRange(month, year)
+    let dateRange = null;
+    if(!date)
+    {
+     dateRange = calculateDateRange(month, year)
+    }
+    else{
+        dateRange = calculateDateRange(month, year, date);
+    }
     
     if (project_id) {
       await validateProject(project_id)
@@ -228,16 +234,27 @@
   }
 
   const calculateTotalHours = (checkInTime, checkOutTime) => {
-    if (!checkInTime || !checkOutTime) return 0
-    
+    if (!checkInTime || !checkOutTime) return '0 Hrs';
+  
     try {
-      const checkIn = new Date(checkInTime)
-      const checkOut = new Date(checkOutTime)
-      const timeDifference = checkOut.getTime() - checkIn.getTime()
-      return Math.round((timeDifference / (1000 * 60 * 60)) * 100) / 100
+      const checkIn = new Date(checkInTime);
+      const checkOut = new Date(checkOutTime);
+      const timeDifference = checkOut.getTime() - checkIn.getTime();
+      
+      // Convert milliseconds to hours and minutes
+      const totalMinutes = Math.floor(timeDifference / (1000 * 60));
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      
+      // Return only hours if minutes is 0
+      if (minutes === 0) {
+        return `${hours} Hrs`;
+      }
+      
+      return `${hours} Hrs ${minutes} Mins`;
     } catch (e) {
-      console.error('Error calculating hours:', e)
-      return 0
+      console.error('Error calculating hours:', e);
+      return '0 Hrs';
     }
   }
 
@@ -245,8 +262,8 @@
     return {
       total: records.length,
       present: records.filter(record => record.chek_in_time).length,
-      absent: records.filter(record => record.check_in_time==null).length,
-      total_working_hours: Math.round(records.reduce((sum, record) => sum + record.total_hours, 0) * 100) / 100,
+      absent: records.filter(record => record.check_in_time==null).length
+     
     }
   }
 
@@ -404,10 +421,7 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
       const statistics = {
           total: processedAttendance.length,
           present: processedAttendance.filter(record => record.check_in_time!=null).length,
-          absent: processedAttendance.filter(record => record.check_in_time==null).length,
-          total_working_hours: processedAttendance.reduce((total, record) => {
-              return total + (record.total_hours || 0);
-          }, 0).toFixed(2)
+          absent: processedAttendance.filter(record => record.check_in_time==null).length
       };
   
       // Push to array instead of adding to object

@@ -2,7 +2,8 @@ import { prisma } from '../config/prismaClient.js'
 import {
   getUserAttendance,
   getTeamAttendance,
-  getTeamAttendaceCount
+  getTeamAttendaceCount,
+  getTodayAttendance
 } from '../services/db/attendaceService.db.js'
 import {
   getTotalWorkingDays,
@@ -20,7 +21,8 @@ import APIError from '../utils/apiError.js'
 export const getAttendanceOverviewService = async (
   userId,
   filter,
-  tabValue
+  tabValue,
+  id
 ) => {
   if (!userId) {
       throw new APIError(STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING )
@@ -46,6 +48,9 @@ export const getAttendanceOverviewService = async (
     case FILTERS.LAST_14_DAYS:
       startDate = new Date(new Date().setDate(endDate.getDate() - 14))
       break
+      case FILTERS.LAST_60_DAYS:
+      startDate = new Date(new Date().setDate(endDate.getDate() - 60))
+      break
     default:
       throw new APIError( STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.INVALIDFILTER)
   }
@@ -53,7 +58,7 @@ export const getAttendanceOverviewService = async (
   let attendanceRecords = []
   let totalEmployees ;
   if (tabValue === TAB_VALUES.ME) {
-    attendanceRecords = await getUserAttendance(userId, startDate, endDate)
+    attendanceRecords = await getUserAttendance(userId, startDate, endDate,id)
   } else if (tabValue === TAB_VALUES.MYTEAM) {
     const employeesData = await getEmployeesHierarchy(userId)
     totalEmployees=employeesData?.totalCount;
@@ -69,19 +74,19 @@ export const getAttendanceOverviewService = async (
     
   }
 
-  const totalDays = getTotalWorkingDays(filter).length
+  const totalDays = await getTotalWorkingDays(filter)
   const presentDays = attendanceRecords.filter((record) =>
     // [ATTENDANCE_STATUS.PRESENT, ATTENDANCE_STATUS.LATE].includes(
     //   record.status.toUpperCase()
     // )
     record.check_in_time !== null
   ).length
-  const absentDays = totalDays - presentDays
+  const absentDays = totalDays?(totalDays - presentDays) : 0
   const attendancePercent = totalDays
     ? ((presentDays / totalDays) * 100).toFixed(2)
     : 0
   const totalWorkHours = await calculateTotalworkinghours(attendanceRecords)
-  const avgWorkHours = presentDays ? (totalWorkHours / totalDays).toFixed(2) : 0
+  const avgWorkHours = totalDays ? (totalWorkHours / totalDays).toFixed(2) : 0
   const avgHours = Math.floor(avgWorkHours);
   const avgMinutes = Math.round((avgWorkHours - avgHours) * 60);
   return {
@@ -166,4 +171,9 @@ export const getMarkInAttendanceCountService=async ( userId,filter,tabValue)=>{
   }
 }catch(error){
 throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.RECORD_FETCHING_FAILED)}
+}
+
+export const getUserAttendanceAndProjectDetailsService=async(userId)=>{
+  const date = new Date()
+  return await getTodayAttendance(userId,date)
 }
