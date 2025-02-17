@@ -179,6 +179,7 @@ export const projectOverviewDetails = async (userId, uccId, days) => {
         const averageWorkingHours= totalDays ? (totalWorkHours / totalDays).toFixed(2) : 0
         const avgHours = Math.floor(averageWorkingHours);
         const avgMinutes = Math.round((averageWorkingHours - avgHours) * 60);
+        
         return {
             totalPresent: totalPresents.length,
             attendancePercent: attendancePercentage,

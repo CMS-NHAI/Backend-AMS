@@ -313,11 +313,13 @@ export const markAttendance = async (req, res) => {
         created_at: new Date(),
       };
 
-      await saveAttendance(markInAttendancedata);
+     const attendaceDetails= await saveAttendance(markInAttendancedata);
       processedData.push({
         checkinTime,
         checkinLat,
         checkinLon,
+        attendaceId:attendaceDetails[0].attendance_id
+
       });
     }
 
