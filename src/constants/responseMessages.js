@@ -50,6 +50,7 @@ export const RESPONSE_MESSAGES = {
       ATTENDACE_MARKED_OUT_SUCCESSFULLY:"You've Successfully Marked-out",
       ATTENDANCE_NOT_MARKED:"You haven't marked your attendance for today",
       FETCH_USER_TODAY_ATTENDANCE:"User Today Attendance Fetched Successfully",
-      PROJECT_OVERVIEW_DETAILS_FETCHED:"Project Overview Details Fetched Successfully"
+      PROJECT_OVERVIEW_DETAILS_FETCHED:"Project Overview Details Fetched Successfully",
+      RECORD_ALREADY_EXISTS:"Attendance Already Exists For This Project"
   },
 }

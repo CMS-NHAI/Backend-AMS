@@ -301,13 +301,13 @@ export const markAttendance = async (req, res) => {
 
       const markInAttendancedata = {
         ucc_id: ucc,
-        check_in_time: new Date(checkinTime.replace(' ', 'T')).toISOString(),
+        check_in_time: checkinTime,
         check_in_lat: checkinLat,
         check_in_lng: checkinLon,
         check_in_device_id: checkinDeviceId,
         check_in_ip_address: checkinIpAddress,
         check_in_remarks: checkinRemarks,
-        attendance_date: checkinDate,
+        attendance_date: new Date(checkinTime.replace(' ', 'T')).toISOString(),
         check_in_geofence_status: checkInGeofenceStatus,
         created_by: userId,
         created_at: new Date(),
@@ -361,7 +361,7 @@ export const markOutAttendance=async (req,res)=>{
       }
       const markOutAttendancedata = {
       attendance_id:data.attendanceId,
-      check_out_time:new Date(data.checkoutTime.replace(' ', 'T')).toISOString(),
+      check_out_time:data.checkoutTime,
       check_out_lat:data.checkoutLat,
       check_out_lng:data.checkoutLon,
       check_out_device_id:data.checkoutDeviceId,
@@ -374,7 +374,7 @@ export const markOutAttendance=async (req,res)=>{
       await updateMarkoutAttendance(markOutAttendancedata)
     }
     let responseData;
-  if(req.body.attendanceData.length <=1){
+  if(req.body.attendanceData.length == 1){
     responseData ={
       checkoutTime:req.body.attendanceData[0].checkoutTime,
       checkoutLat:req.body.attendanceData[0].checkoutLat,
