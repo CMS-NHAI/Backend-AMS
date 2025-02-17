@@ -7,6 +7,22 @@
     if (!userId) {
       throw new APIError(STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING)
     }
+    const employeeDetails = await prisma.user_master.findFirst({
+      where: {
+        user_id: userId
+      },
+      select: {
+        user_id: true,
+        name: true,
+        email: true,
+        designation: true
+      }
+    });
+  
+    if (!employeeDetails) {
+      throw new APIError(STATUS_CODES.NOT_FOUND, RESPONSE_MESSAGES.ERROR.USER_NOT_FOUND);
+     }
+
     let dateRange = null;
     if(!date)
     {
@@ -36,6 +52,7 @@
       message: 'Attendance details retrieved successfully',
       status: STATUS_CODES.OK,
       data: {
+        employee_details: employeeDetails,
         statistics: processedData.statistics,
         attendance: processedData.groupedAttendance,
         dateRange: {
