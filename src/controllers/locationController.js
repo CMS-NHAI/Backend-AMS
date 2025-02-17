@@ -24,7 +24,6 @@ export const fetchlocationBydate = async (req, res) => {
         });
 
     } catch (err) {
-        console.log("Error: ", err);
         logger.error({
             message: RESPONSE_MESSAGES.ERROR.REQUEST_PROCESSING_ERROR,
             error: err,
@@ -57,7 +56,6 @@ export const fetchNearestProject = async (req, res) => {
             data: uccDetails
         });
     } catch (err) {
-        console.log("Fetch nearest UCC error:: ", err);
         logger.error({
             message: RESPONSE_MESSAGES.ERROR.REQUEST_PROCESSING_ERROR,
             error: err,
@@ -66,7 +64,7 @@ export const fetchNearestProject = async (req, res) => {
             time: new Date().toISOString(),
         });
 
-        if(err instanceof APIError) {
+        if (err instanceof APIError) {
             res.status(STATUS_CODES.OK).json({
                 success: true,
                 message: err.message
