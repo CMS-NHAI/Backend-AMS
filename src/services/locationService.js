@@ -125,26 +125,34 @@ const getAttendanceLocationForTeam = async (parentId, date, uccNo) => {
     if (teamUserIds.length > 0) {
         const teamLocationDetails = await prisma.$queryRaw`
         SELECT 
-            attendance_id,
-            user_id,
-            attendance_date,
-            check_in_geofence_status,
-            check_in_remarks,
-            check_in_accuracy,
-            check_in_time,
-            check_in_lat, 
-            check_in_lng, 
-            public.ST_AsGeoJSON(check_in_loc) AS check_in_loc, 
-            check_out_geofence_status,
-            check_out_remarks,
-            check_out_accuracy,
-            check_out_time,
-            check_out_lat, 
-            check_out_lng, 
-            public.ST_AsGeoJSON(check_out_loc) AS check_out_loc
-        FROM tenant_nhai.am_attendance 
-        WHERE user_id IN (${Prisma.join(teamUserIds)})
-        AND attendance_date = CAST(${date} AS DATE) AND ucc_id = ${uccNo};
+            att.attendance_id,
+            att.user_id,
+            att.attendance_date,
+            att.check_in_geofence_status,
+            att.check_in_remarks,
+            att.check_in_accuracy,
+            att.check_in_time,
+            att.check_in_lat, 
+            att.check_in_lng, 
+            public.ST_AsGeoJSON(att.check_in_loc) AS check_in_loc, 
+            att.check_out_geofence_status,
+            att.check_out_remarks,
+            att.check_out_accuracy,
+            att.check_out_time,
+            att.check_out_lat, 
+            att.check_out_lng, 
+            public.ST_AsGeoJSON(att.check_out_loc) AS check_out_loc,
+            att.attendance_date,
+            user_master.name AS full_name,
+            user_master.first_name,
+            user_master.middle_name,
+            user_master.last_name,
+            user_master.user_profile_pic_path
+        FROM tenant_nhai.am_attendance att
+        JOIN 
+            tenant_nhai.user_master ON att.user_id = user_master.user_id
+        WHERE att.user_id IN (${Prisma.join(teamUserIds)})
+        AND att.attendance_date = CAST(${date} AS DATE) AND att.ucc_id = ${uccNo};
     `;
 
         return teamLocationDetails;
