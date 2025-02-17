@@ -159,9 +159,9 @@ export const markOutAttendaceSchema = Joi.object({
         .pattern(/^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01]) (\d{2}):([0-5]\d):([0-5]\d)$/)
         .required()
         .messages({
-          'string.empty': 'Checkin Time should not be empty.',
-          'string.pattern.base': 'checkinTime must be in HH:MM:SS format',
-          'any.required': 'Checkin Date is required.'
+          'string.empty': 'Checkout Time should not be empty.',
+          'string.pattern.base': 'checkOutTime must be in HH:MM:SS format',
+          'any.required': 'Checkout Date is required.'
         }),
       checkoutDeviceId: Joi.string().allow('').optional(),
       checkoutIpAddress: Joi.string().allow('').optional(),
