@@ -311,6 +311,7 @@ export const markAttendance = async (req, res) => {
         check_in_geofence_status: checkInGeofenceStatus,
         created_by: userId,
         created_at: new Date(),
+        user_id:userId
       };
 
      const attendaceDetails= await saveAttendance(markInAttendancedata);
@@ -334,7 +335,7 @@ export const markAttendance = async (req, res) => {
       return res.status(error.statusCode).json({
         success: false,
         message: error.message,
-        data: null,
+        data: [],
       });
     } else {
       return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
@@ -507,7 +508,7 @@ export const getUserTodayAttendanceData =async(req,res)=>{
     return res.status(error.statusCode).json({
       success: false,
       message: error.message,
-      data: null
+      data: []
     });
   }
   res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
