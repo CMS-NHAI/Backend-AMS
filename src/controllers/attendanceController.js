@@ -49,7 +49,7 @@ export const getAttendanceOverview = async (req, res) => {
 }
 
 export const getAttendanceDetails = async (req, res) => {
-  const { month, year, project_id, tabValue, date, exports, page = 1, limit = 10 , user_id} = req.query;
+  const { month, year, project_id, tabValue, date, exports, page = 1, limit = 500 , user_id} = req.query;
   const loggedInUserId = req.user.user_id;
   if(tabValue!=TAB_VALUES.ME && tabValue!=TAB_VALUES.MYTEAM|| !tabValue)
   {
