@@ -68,7 +68,7 @@ export const saveAttendance = async (attendance) => {
     where: {
       user_id: attendance.user_id,
       ucc_id: attendance.ucc_id,
-      attendance_date: attendance.attendanceDate,
+      attendance_date: attendance.attendance_date,
     },
   });
   if(existingAttendance){
