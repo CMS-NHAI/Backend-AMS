@@ -27,7 +27,23 @@ export async function fetchCheckedInEmployees(req, userId) {
         // Validate date range if provided
         const start = startDate ? new Date(startDate) : null;
         const end = endDate ? new Date(endDate) : null;
+        logger.info('Calculating the date range for filetration.');
         const { calculatedStartDate, calculatedEndDate } = getDateRange(filterType, startDate, endDate);
+
+        logger.info('Fetching user mapping data to fetch attendance.');
+        const projectUserIds = await prisma.ucc_user_mappings.findMany({
+            where: {
+                user_id: {
+                    in: userIds,
+                },
+                ucc_id: uccId && uccId !== STRING_CONSTANT.ALL ? uccId : undefined
+            },
+            select: {
+                user_id: true
+            }
+        });
+
+        logger.info('User mapping data fetched successfully.');
 
         const filters = {
             attendance_date: {
@@ -35,7 +51,7 @@ export async function fetchCheckedInEmployees(req, userId) {
                 lte: calculatedEndDate.toISOString(),
             },
             user_id: {
-                in: userIds,
+                in: projectUserIds.map(data => data.user_id),
             },
             check_in_time: {
                 not: null
@@ -43,6 +59,7 @@ export async function fetchCheckedInEmployees(req, userId) {
             ucc_id: uccId && uccId !== STRING_CONSTANT.ALL ? uccId : undefined
         };
 
+        logger.info('Fetching attendance records based on the user mapping and uccId.');
         const attendanceRecords = await prisma.am_attendance.findMany({
             where: filters,
             skip: skip,
@@ -58,6 +75,7 @@ export async function fetchCheckedInEmployees(req, userId) {
             }
         });
 
+        logger.info('Attendance records fetched successfully.');
         const response = attendanceRecords.map(record => ({
             attendanceId: record.attendance_id,
             name: record.user_master.name,
@@ -65,9 +83,9 @@ export async function fetchCheckedInEmployees(req, userId) {
             designation: record.user_master.designation,
             userId: record.user_id
         }));
-
         return {
             employeeDetails: response,
+            checkOutCount: await getCheckOutCount(calculatedStartDate, calculatedEndDate, projectUserIds, uccId),
             paginationDetails: {
                 limit,
                 page,
@@ -154,7 +172,9 @@ async function getTotalRecords(filters) {
 export async function getEmployeesByProject(req, userId) {
     try {
         logger.info('Fetching employee details based on project.');
+        logger.info('Fetching team user ids based on parent userId.');
         const result = await getTeamUserIds(userId, new Set());
+        logger.info('Team user ids fetched successfully.');
 
         const userIds = result.userIds;
         const { limit = 10, page = 2 } = req.query;
@@ -177,10 +197,12 @@ export async function getEmployeesByProject(req, userId) {
             }
         });
 
+        logger.info('Fetching user records based on the filter.');
+        const uniqueUserIds = [...new Set(projectUserIds.map(data => data.user_id))];
         const employeeDetails = await prisma.user_master.findMany({
             where: {
                 user_id: {
-                    in: projectUserIds.map(data => data.user_id)
+                    in: uniqueUserIds
                 }
             },
             skip: skip,
@@ -193,16 +215,34 @@ export async function getEmployeesByProject(req, userId) {
             }
         });
 
+        logger.info('User records fetched successfully.');
         return {
             employeeDetails,
             paginationDetails: {
                 limit,
                 page,
-                totalrecords: projectUserIds.length
+                totalrecords: employeeDetails.length
             }
         };
     } catch (err) {
         logger.error(err);
         throw err;
     }
+}
+
+async function getCheckOutCount(calculatedStartDate, calculatedEndDate, projectUserIds, uccId) {
+    logger.info('Calculating check out count of  my team.');
+    return await prisma.am_attendance.count({
+        where: {
+            attendance_date: {
+                gte: calculatedStartDate.toISOString(),
+                lte: calculatedEndDate.toISOString(),
+            },
+            user_id: {
+                in: projectUserIds.map(data => data.user_id),
+            },
+            check_in_time: null,
+            ucc_id: uccId && uccId !== STRING_CONSTANT.ALL ? uccId : undefined
+        }
+    });
 }
