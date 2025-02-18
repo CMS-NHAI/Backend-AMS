@@ -365,10 +365,7 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
                   return recordDate >= startDate && recordDate <= endDate;
               });
           } else {
-              // const targetDate = new Date(date).toISOString().split('T')[0];
-              // employeeAttendance = employeeAttendance.filter(record => 
-              //     new Date(record.attendance_date).toISOString().split('T')[0] === targetDate
-              // );
+              
               const targetDate = new Date(date);
               targetDate.setHours(0, 0, 0, 0);
               

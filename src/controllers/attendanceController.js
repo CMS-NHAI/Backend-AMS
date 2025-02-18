@@ -105,23 +105,10 @@ export const getAttendanceDetails = async (req, res) => {
     }
   } else {
     try {
-    //   if (date) {
-    //   if (!isNaN(date)) {
-    //   if(date!=14)
-    //     {
-    //       return res.status(STATUS_CODES.BAD_REQUEST).json({
-    //         success: false,
-    //         status: STATUS_CODES.BAD_REQUEST,
-    //         message: RESPONSE_MESSAGES.ERROR.LAST_14_DAYS
-    //       }); 
-    //     }
-    //   }
-    // }
+ 
       const employeesData = await getEmployeesHierarchy(loggedInUserId);
-      console.log('employees data ', employeesData);
       const totalEmployees = employeesData?.totalCount;
       const employeeUserIds = await getAttendanceForHierarchy(employeesData.hierarchy);
-      console.log('employee user ids ', employeeUserIds);
       const dateRange = calculateDateRange(month, year, date);
       const attendanceRecords = await getTeamAttendance(
         employeeUserIds,
@@ -129,7 +116,7 @@ export const getAttendanceDetails = async (req, res) => {
         dateRange.endDate,
         project_id
       );
-      console.log("attendance records " , attendanceRecords);
+      
 
       const result = await processTeamAttendance(
         employeeUserIds,
@@ -140,7 +127,7 @@ export const getAttendanceDetails = async (req, res) => {
         parseInt(page),
         parseInt(limit)
       );
-      console.log('result=>>>>>>>>>>>>>>>>> ', result);
+      
     
         if (exports == 'true') {
           let exportTeamAttendanceRecords = [];
@@ -195,9 +182,38 @@ export const getAttendanceDetails = async (req, res) => {
 
 export const getAllProjects = async (req, res) => {
   try {
-    // Get all active projects from ucc_master
-    const projects = await prisma.ucc_master.findMany({
+    const userId = req.user.user_id; // Get logged in user's ID
 
+    // First get all active UCC mappings for this user
+    const userProjects = await prisma.ucc_user_mappings.findMany({
+      where: {
+        user_id: userId,
+        status: 'active'
+      },
+      select: {
+        ucc_id: true
+      }
+    });
+    
+    // Extract ucc_ids from mappings
+    const userUccIds = userProjects.map(project => project.ucc_id);
+    // If no mappings found
+    if (!userUccIds.length) {
+      return res.status(STATUS_CODES.OK).json({
+        success: false,
+        status: STATUS_CODES.OK,
+        message: 'No projects assigned to user',
+        data: []
+      });
+    }
+
+    // Get projects from ucc_master where ucc_id matches user's mappings
+    const projects = await prisma.ucc_master.findMany({
+      where: {
+        id: {
+          in: userUccIds
+        }
+      },
       select: {
         project_name: true,
         id: true,
@@ -211,10 +227,9 @@ export const getAllProjects = async (req, res) => {
         status: true,
         stretch_name: true,
         usc: true
-
       },
       orderBy: {
-        project_name: 'asc'  // Sort alphabetically by project name
+        project_name: 'asc'
       }
     });
 
@@ -227,7 +242,6 @@ export const getAllProjects = async (req, res) => {
         data: []
       });
     }
-
 
     return res.status(STATUS_CODES.OK).json({
       success: true,
