@@ -29,13 +29,25 @@ export async function fetchCheckedInEmployees(req, userId) {
         const end = endDate ? new Date(endDate) : null;
         const { calculatedStartDate, calculatedEndDate } = getDateRange(filterType, startDate, endDate);
 
+        const projectUserIds = await prisma.ucc_user_mappings.findMany({
+            where: {
+                user_id: {
+                    in: userIds,
+                },
+                ucc_id: uccId && uccId !== STRING_CONSTANT.ALL ? uccId : undefined
+            },
+            select: {
+                user_id: true
+            }
+        });
+
         const filters = {
             attendance_date: {
                 gte: calculatedStartDate.toISOString(),
                 lte: calculatedEndDate.toISOString(),
             },
             user_id: {
-                in: userIds,
+                in: projectUserIds.map(data => data.user_id),
             },
             check_in_time: {
                 not: null
@@ -65,9 +77,9 @@ export async function fetchCheckedInEmployees(req, userId) {
             designation: record.user_master.designation,
             userId: record.user_id
         }));
-
         return {
             employeeDetails: response,
+            checkOutCount: await getCheckOutCount(calculatedStartDate, calculatedEndDate, projectUserIds, uccId),
             paginationDetails: {
                 limit,
                 page,
@@ -205,4 +217,20 @@ export async function getEmployeesByProject(req, userId) {
         logger.error(err);
         throw err;
     }
+}
+
+async function getCheckOutCount(calculatedStartDate, calculatedEndDate, projectUserIds, uccId) {
+    return await prisma.am_attendance.count({
+        where: {
+            attendance_date: {
+                gte: calculatedStartDate.toISOString(),
+                lte: calculatedEndDate.toISOString(),
+            },
+            user_id: {
+                in: projectUserIds.map(data => data.user_id),
+            },
+            check_in_time: null,
+            ucc_id: uccId && uccId !== STRING_CONSTANT.ALL ? uccId : undefined
+        }
+    });
 }
