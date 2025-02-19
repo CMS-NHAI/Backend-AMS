@@ -313,7 +313,6 @@ export const markAttendance = async (req, res) => {
       if (faceauthstatus === "no") {
         throw new APIError(STATUS_CODES.NOT_ACCEPTABLE, RESPONSE_MESSAGES.ERROR.INVALID_FACEAUTHSTATUS);
       }
-
       const markInAttendancedata = {
         ucc_id: ucc,
         check_in_time: checkinTime,
@@ -322,7 +321,7 @@ export const markAttendance = async (req, res) => {
         check_in_device_id: checkinDeviceId,
         check_in_ip_address: checkinIpAddress,
         check_in_remarks: checkinRemarks,
-        attendance_date: new Date(checkinTime.replace(' ', 'T')).toISOString(),
+        attendance_date: new Date(checkinTime.replace(' ', 'T') + 'Z').toISOString(),
         check_in_geofence_status: checkInGeofenceStatus,
         created_by: userId,
         created_at: new Date(),

@@ -94,16 +94,17 @@ export const getProjectOverviewDetail =async (req,res)=>{
 
     export const getProjectOverviewDetailWeb =async (req,res)=>{
     try{
-        const userId =req.user.user_id;
-    let {month,year} = req.query;
-        const currentDate = moment();
-        year = year || currentDate.year().toString();
-        month = month || (currentDate.month() + 1).toString();
-        month = month.padStart(2, '0');
-        // Create a moment object for the first day of the month (startDate)
-        const startDate = moment(`${year}-${month}-01`, 'YYYY-MM-DD').startOf('day').toDate();
-        // Create the endDate (first day of the next month)
-        const endDate = moment(startDate).add(1, 'month').startOf('day').toDate();
+        let userId =req.user.user_id;
+    let {month,year,id} = req.query;
+    const currentDate = moment();
+    year = year || currentDate.year().toString();
+    month = month || (currentDate.month() + 1).toString();
+    month = month.padStart(2, '0');
+    // Create a moment object for the first day of the month (startDate)
+    const startDate = moment(`${year}-${month}-01`, 'YYYY-MM-DD').startOf('day').toDate();
+    // Create the endDate (first day of the next month)
+    const endDate = moment(startDate).add(1, 'month').startOf('day').toDate();
+
         //     const days = filter === "30" ? 30 : filter === "14" ? 14 : 7;
         //  const userId = req.user.user_id;
          const {uccId} =req.params
@@ -112,6 +113,10 @@ export const getProjectOverviewDetail =async (req,res)=>{
             throw new APIError(STATUS_CODES.UNAUTHORIZED, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING);
         }
 
+        if(id){
+          userId = Number(id)
+        }
+    
         const result =await projectOverviewDetailsforWeb(userId,uccId,startDate,endDate,year,month);
 
         return res.status(STATUS_CODES.OK).json({
