@@ -34,7 +34,9 @@ export const RESPONSE_MESSAGES = {
     RECORD_FETCHING_FAILED:"Attendace Record Fetching Failed",
     FAILED_TO_GET_USERS_ATTENDANCE_DATA:"Failed to Fetch User Today Attendance",
     FAILED_TO_FETCH_PROJECT_OVERVIEW_DETAILS:"Failed to Fetch Project Overview Details",
-    USER_NOT_FOUND : "User Not Exist"
+    USER_NOT_FOUND : "User Not Exist",
+    CHECKOUT_TIME_IS_INCORRECT: "Checkout Time Is Incorrect",
+    ATTENDANCE_ALREADY_MARKED:"Attendance Is Already Marked or Record not found"
     
   },
   SUCCESS: {
