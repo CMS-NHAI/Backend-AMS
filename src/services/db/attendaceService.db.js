@@ -64,6 +64,15 @@ export const getTeamAttendance = async (employeeUserIds, startDate, endDate, pro
 export const saveAttendance = async (attendance) => {
   const lat = attendance.check_in_lat;
   const long = attendance.check_in_lng;
+
+  const projectExists = await prisma.ucc_master.findFirst({
+    where:{
+        id:attendance.ucc_id
+    }
+})
+  if(!projectExists){
+    throw new APIError(STATUS_CODES.NOT_FOUND,RESPONSE_MESSAGES.ERROR.PROJECT_NOT_FOUND)
+  }
   const existingAttendance = await prisma.am_attendance.findFirst({
     where: {
       user_id: attendance.user_id,
@@ -151,7 +160,8 @@ export const getTodayAttendance = async (userId, date) => {
       check_out_time: true,
       attendance_date: true,
       check_in_geofence_status: true,
-      check_out_geofence_status: true
+      check_out_geofence_status: true,
+      attendance_id:true
     }
   });
 
