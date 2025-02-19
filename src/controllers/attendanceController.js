@@ -19,6 +19,7 @@ import { exportToCSV } from '../utils/attendaceUtils.js';
 import { RESPONSE_MESSAGES } from '../constants/responseMessages.js';
 import { fetchCheckedInEmployees, getEmployeesByProject } from '../services/employeeService.js';
 import { getProjectAttendanceCount } from '../services/projectService.js';
+import { calculateTotalHours } from '../services/attendanceDetailService.js';
 const prisma = new PrismaClient();
 /**
  * Get Attendace Overview of a user by Id.
@@ -179,6 +180,142 @@ export const getAttendanceDetails = async (req, res) => {
         message: error.message
       });    }
   }
+};
+
+export const getTeamAttendanceDetails = async (req, res) => {
+  const { month, year, project_id, date, exports, page = 1, limit = 500 } = req.query;
+  const loggedInUserId = req.user.user_id;
+ 
+    try {
+ 
+      const employeesData = await getEmployeesHierarchy(loggedInUserId);
+      const employeeUserIds = await getAttendanceForHierarchy(employeesData.hierarchy);
+      const dateRange = calculateDateRange(month, year, date);
+      const attendanceRecords = await getTeamAttendance(
+        employeeUserIds,
+        dateRange.startDate,
+        dateRange.endDate,
+        project_id
+      );
+      const employeeDetails = await prisma.user_master.findMany({
+        where: {
+          user_id: {
+            in: employeeUserIds
+          }
+        },
+        select: {
+          user_id: true,
+          name: true,
+          email: true,
+          designation: true
+        }
+      });
+      const employeeMap = employeeDetails.reduce((acc, emp) => {
+        acc[emp.user_id] = emp;
+        return acc;
+      }, {});
+  
+      // Process attendance records
+      
+      const processedAttendance = await Promise.all(attendanceRecords.map(async(record) => ({
+        ...record,
+        ...employeeMap[record.user_id], // Spread employee details into the record
+        status: determineStatus(record),
+        total_hours: calculateTotalHours(record.check_in_time, record.check_out_time),
+        project_name: await getProjectName(record.ucc_id)
+      })))
+      
+      const sortedAttendance = processedAttendance.sort((a, b) => {
+        return new Date(b.check_in_time) - new Date(a.check_in_time);
+      });
+  
+      const startIndex = (parseInt(page) - 1) * parseInt(limit);
+      const endIndex = startIndex + parseInt(limit);
+      const paginatedAttendance = sortedAttendance.slice(startIndex, endIndex);
+
+      const result = {
+        success: true,
+        message: "Attendance details retrieved successfully",
+        status: STATUS_CODES.OK,
+        data: {
+          attendance: paginatedAttendance,
+          dateRange: {
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate
+          },
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages: Math.ceil(processedAttendance.length / parseInt(limit)),
+            totalRecords: processedAttendance.length,
+            limit: parseInt(limit),
+            hasNextPage: endIndex < processedAttendance.length,
+            hasPreviousPage: startIndex > 0
+          }
+        }
+      };
+    
+      if (exports == 'true') {
+        const exportTeamAttendanceRecords = sortedAttendance.map(record => ({
+          employee: record.name,
+          date: new Date(record.attendance_date).toLocaleDateString(),
+          designation: record.designation || '-',
+          attendanceStatus: record.status,
+          projectName: record.project_name || '-',
+          totalHours: record.total_hours || '0.00',
+          checkInTime: record.check_in_time ? 
+            new Date(record.check_in_time).toLocaleTimeString() : '-',
+          checkOutTime: record.check_out_time ? 
+            new Date(record.check_out_time).toLocaleTimeString() : '-'
+        }));
+  
+        const headers = [
+          { id: 'employee', title: 'Employee Name' },
+          { id: 'date', title: 'Date' },
+          { id: 'designation', title: 'Designation' },
+          { id: 'attendanceStatus', title: 'Attendance Status' },
+          { id: 'projectName', title: 'Project Name' },
+          { id: 'totalHours', title: 'Total Working Hours' },
+          { id: 'checkInTime', title: 'Check In Time' },
+          { id: 'checkOutTime', title: 'Check Out Time' }
+        ];
+  
+        return await exportToCSV(res, exportTeamAttendanceRecords, "TeamAttendance", headers);
+      }
+
+
+      return res.status(STATUS_CODES.OK).json(result);
+    } catch (error) {
+      // Error handling remains the same
+      console.error('Error fetching team attendance:', error);
+      return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        status: STATUS_CODES.INTERNAL_SERVER_ERROR,
+        message: error.message
+      });    }
+  
+};
+
+export const determineStatus = (record) => {
+  if (!record.check_in_time) return 'Absent';
+  
+  const checkInStatus = record.check_in_geofence_status?.toUpperCase();
+  const checkOutStatus = record.check_out_geofence_status?.toUpperCase();
+  
+  if (checkInStatus === 'OUTSIDE' || checkOutStatus === 'OUTSIDE') {
+    return 'Offsite_Present';
+  }
+  return 'Present';
+};
+
+export const getProjectName = async (ucc_id) => {
+  if (!ucc_id) return 'Project Not Found';
+  
+  const project = await prisma.ucc_master.findFirst({
+    where: { id: ucc_id },
+    select: { project_name: true }
+  });
+  
+  return project?.project_name || 'Project Not Found';
 };
 
 export const getAllProjects = async (req, res) => {

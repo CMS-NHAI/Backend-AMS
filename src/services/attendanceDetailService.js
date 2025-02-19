@@ -229,7 +229,7 @@
     });
   }
 
-  const calculateTotalHours = (checkInTime, checkOutTime) => {
+  export const calculateTotalHours = (checkInTime, checkOutTime) => {
     if (!checkInTime || !checkOutTime) return '0 Hrs';
   
     try {
