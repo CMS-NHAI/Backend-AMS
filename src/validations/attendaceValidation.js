@@ -107,6 +107,9 @@ export const markAttendaceSchema = Joi.object({
 });
 
 export const projectDetailsValidationSchema = Joi.object({
+  export: Joi.boolean().optional().messages({
+    'boolean.base': 'export must be a boolean value (true or false)',
+  }),
   date: Joi.date().iso().required().messages({
     'date.base': 'date must be a valid date',
     'date.format': 'date must be in the format YYYY-MM-DD',
