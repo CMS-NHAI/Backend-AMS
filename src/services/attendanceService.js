@@ -93,7 +93,7 @@ export const getAttendanceOverviewService = async (
     totalPresent: presentDays,
     attendancePercent: attendancePercent,
     avgWorkHrs: `${avgHours}hr ${avgMinutes}min`,
-    leaves: absentDays,
+    leaves: Maths.abs(absentDays),
     totalEmployees
   }
 }

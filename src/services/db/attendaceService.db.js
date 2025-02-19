@@ -88,13 +88,24 @@ export const updateMarkoutAttendance =async(attendanceData) =>{
 
   const lat=attendanceData.check_out_lat
   const long=attendanceData.check_out_lng
-  try{
     const attendanceExists = await prisma.am_attendance.findMany({
       where:{
         attendance_id:attendanceData.attendance_id
       }
     })
-    if(attendanceExists?.length > 0){
+
+    if(attendanceExists.length == 0 || attendanceExists[0]?.check_out_time != null){
+      throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.ATTENDANCE_ALREADY_MARKED)
+    }
+    if(attendanceExists.length > 0 ){
+      const checkOutTime = new Date(attendanceData.check_out_time.replace(' ', 'T') + 'Z').toISOString();
+      const checkInTime = new Date(attendanceExists[0].check_in_time);
+
+      if(checkOutTime < checkInTime){
+        throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.CHECKOUT_TIME_IS_INCORRECT)
+      }
+      
+      // const checkinTime = attendanceExists.check
     await prisma.$queryRaw`
     UPDATE tenant_nhai.am_attendance
     SET 
@@ -111,10 +122,6 @@ export const updateMarkoutAttendance =async(attendanceData) =>{
     }else{
       return []
     }
-  
-  }catch(error){
-    throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.MARKOUT_ATTENDANCE_UPDATE_FAILED)
-  }
 }
 
 export const getTeamAttendaceCount=async(ids,whereCondition)=>{
