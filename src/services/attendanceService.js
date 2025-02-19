@@ -65,7 +65,6 @@ export const getAttendanceOverviewService = async (
     const employeeUserIds = await getAttendanceForHierarchy(
       employeesData.hierarchy
     )
-    console.log(employeeUserIds,"employeeUserIds");
     attendanceRecords = await getTeamAttendance(
       employeeUserIds,
       startDate,
@@ -93,7 +92,7 @@ export const getAttendanceOverviewService = async (
     totalPresent: presentDays,
     attendancePercent: attendancePercent,
     avgWorkHrs: `${avgHours}hr ${avgMinutes}min`,
-    leaves: absentDays,
+    leaves: Math.abs(absentDays),
     totalEmployees
   }
 }
@@ -146,11 +145,11 @@ export const getMarkInAttendanceCountService=async ( userId,filter,tabValue)=>{
     
     if(filter ==="yesterday"){
       endDate = new Date();
-      
+      endDate.setHours(0, 0, 0, 0);
       startDate = new Date(new Date().setDate(endDate.getDate() - 1))
       whereCondition.attendance_date = {
         gte: startDate,
-        lte: endDate
+        lt: endDate
     };
 
       markedInAttendanceCount = await getTeamAttendaceCount(employeeUserIds,whereCondition)

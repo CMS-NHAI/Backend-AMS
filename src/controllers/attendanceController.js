@@ -18,6 +18,7 @@ import { TAB_VALUES } from '../constants/attendanceConstant.js';
 import { exportToCSV } from '../utils/attendaceUtils.js';
 import { RESPONSE_MESSAGES } from '../constants/responseMessages.js';
 import { fetchCheckedInEmployees, getEmployeesByProject } from '../services/employeeService.js';
+import { getProjectAttendanceCount } from '../services/projectService.js';
 const prisma = new PrismaClient();
 /**
  * Get Attendace Overview of a user by Id.
@@ -183,6 +184,7 @@ export const getAttendanceDetails = async (req, res) => {
 export const getAllProjects = async (req, res) => {
   try {
     const userId = req.user.user_id; // Get logged in user's ID
+    const date = req.query?.date;
 
     // First get all active UCC mappings for this user
     const userProjects = await prisma.ucc_user_mappings.findMany({
@@ -247,11 +249,10 @@ export const getAllProjects = async (req, res) => {
       success: true,
       status: STATUS_CODES.OK,
       message: 'Projects retrieved successfully',
-      data: projects
+      data: date ? await getProjectAttendanceCount(req, projects, date) : projects
     });
 
   } catch (error) {
-    console.error('Error fetching projects:', error);
     return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
       success: false,
       status: STATUS_CODES.INTERNAL_SERVER_ERROR,
@@ -312,7 +313,6 @@ export const markAttendance = async (req, res) => {
       if (faceauthstatus === "no") {
         throw new APIError(STATUS_CODES.NOT_ACCEPTABLE, RESPONSE_MESSAGES.ERROR.INVALID_FACEAUTHSTATUS);
       }
-
       const markInAttendancedata = {
         ucc_id: ucc,
         check_in_time: checkinTime,
@@ -321,7 +321,7 @@ export const markAttendance = async (req, res) => {
         check_in_device_id: checkinDeviceId,
         check_in_ip_address: checkinIpAddress,
         check_in_remarks: checkinRemarks,
-        attendance_date: new Date(checkinTime.replace(' ', 'T')).toISOString(),
+        attendance_date: new Date(checkinTime.replace(' ', 'T') + 'Z').toISOString(),
         check_in_geofence_status: checkInGeofenceStatus,
         created_by: userId,
         created_at: new Date(),

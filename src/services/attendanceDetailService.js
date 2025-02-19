@@ -222,28 +222,10 @@
         }
       }
     
-      // Combine attendance date with check in/out times
-      const checkInTime = record.check_in_time ? new Date(
-        attendanceDate.getFullYear(),
-        attendanceDate.getMonth(),
-        attendanceDate.getDate(),
-        new Date(record.check_in_time).getHours(),
-        new Date(record.check_in_time).getMinutes()
-      ).toISOString() : null;
-  
-      const checkOutTime = record.check_out_time ? new Date(
-        attendanceDate.getFullYear(),
-        attendanceDate.getMonth(),
-        attendanceDate.getDate(),
-        new Date(record.check_out_time).getHours(),
-        new Date(record.check_out_time).getMinutes()
-      ).toISOString() : null;
     
       return {
         ...record,
-        status, // Add derived status
-        check_in_time: checkInTime,
-        check_out_time: checkOutTime,
+        status,
         total_hours: calculateTotalHours(record.check_in_time, record.check_out_time),
         project_name: projectMap[record.ucc_id] || 'Project Not Found'
       };
@@ -384,8 +366,7 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
   
       const processedAttendance = employeeAttendance.map(record => {
           const attendanceDate = new Date(record.attendance_date);
-          let checkInTime = null;
-          let checkOutTime = null;
+        
           let status = record.check_in_time ? 'Present' : 'Absent';
           if (record.check_in_time) {
             const checkInStatus = record.check_in_geofence_status?.toUpperCase();
@@ -394,34 +375,11 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
               status = 'Offsite_Present';
             }
           }
-          if (record.check_in_time) {
-              const checkInDate = new Date(record.check_in_time);
-              checkInTime = new Date(
-                  attendanceDate.getFullYear(),
-                  attendanceDate.getMonth(),
-                  attendanceDate.getDate(),
-                  checkInDate.getHours(),
-                  checkInDate.getMinutes()
-              ).toISOString();
-          }
-
-          if (record.check_out_time) {
-              const checkOutDate = new Date(record.check_out_time);
-              checkOutTime = new Date(
-                  attendanceDate.getFullYear(),
-                  attendanceDate.getMonth(),
-                  attendanceDate.getDate(),
-                  checkOutDate.getHours(),
-                  checkOutDate.getMinutes()
-              ).toISOString();
-          }
-
+         
           return {
               ...record,
               status,
-              check_in_time: checkInTime,
-              check_out_time: checkOutTime,
-              total_hours: calculateTotalHours(checkInTime, checkOutTime),
+              total_hours: calculateTotalHours(record.check_in_time, record.check_out_time),
               project_name: record.ucc_id ? projectMap[record.ucc_id] || 'Project Not Found' : ''
           };
       });
