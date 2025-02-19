@@ -9,7 +9,7 @@ import { getTeamUserIds } from "../helpers/attendanceHelper.js";
 import APIError from "../utils/apiError.js";
 import { logger } from "../utils/logger.js";
 import { getTotalUsers, getUsersPresentCount } from "./db/attendaceService.db.js";
-import { calculateTotalworkinghours,getTotalWorkingDays,getMonthWiseTotalWorkingDays } from "../helpers/attendanceHelper.js";
+import { calculateTotalworkinghours, getTotalWorkingDays, getMonthWiseTotalWorkingDays } from "../helpers/attendanceHelper.js";
 /**
  * Fetches project attendance details for a team based on the provided user ID, date, and UCC ID.
  * This function calculates the total employees and present employees percentage for each UCC project
@@ -179,13 +179,13 @@ export const projectOverviewDetails = async (userId, uccId, days) => {
         const averageWorkingHours= totalDays ? (totalWorkHours / totalDays).toFixed(2) : 0
         const avgHours = Math.floor(averageWorkingHours);
         const avgMinutes = Math.round((averageWorkingHours - avgHours) * 60);
-        
+
         return {
             totalPresent: totalPresents.length,
             attendancePercent: attendancePercentage,
             avgWorkHrs: `${avgHours}hr ${avgMinutes}min`,
             leaves: totalAbsent,
-          }
+        }
     } catch (error) {
         console.log(error,"error");
         throw new APIError(STATUS_CODES.BAD_REQUEST,error.message)
@@ -203,15 +203,15 @@ export const projectOverviewDetailsforWeb =async(userId,uccId,startDate,endDate,
         throw new APIError(STATUS_CODES.NOT_FOUND,RESPONSE_MESSAGES.ERROR.PROJECT_NOT_FOUND)
     }
 
-   const getProjectWiseAttendance = await prisma.am_attendance.findMany({
+    const getProjectWiseAttendance = await prisma.am_attendance.findMany({
       where:{
         user_id:userId,
         ucc_id:uccId,
         attendance_date:{
           gt:startDate,
           lte:endDate
+            }
         }
-      }
     })
     const totalPresentDays = getProjectWiseAttendance? getProjectWiseAttendance.length : 0
     const totalWorkingDays =await getMonthWiseTotalWorkingDays(year,month)
@@ -227,4 +227,63 @@ export const projectOverviewDetailsforWeb =async(userId,uccId,startDate,endDate,
         averageWorkingHours,
         attendancePercentage
     }
-  }  
+}
+
+/**
+ * Retrieves the attendance count for a list of projects on a given date along with project details.
+ *
+ * This function processes attendance records for the provided list of projects and
+ * calculates the number of users who have checked in and the number of users who
+ * have not checked in yet, based on the given date.
+ *
+ * @param {Object} req - The request object containing query parameters and other details.
+ * @param {Array} projects - List of projects (each containing a `permanent_ucc` and other project details).
+ * @returns {Array} - An array of objects, each containing the project details along with the attendance counts.
+ * @throws {Error} - Throws an error if an issue occurs while processing the attendance data.
+ */
+export const getProjectAttendanceCount = async (req, projects) => {
+    try {
+        const givenDate = req.query?.date;
+        const date = new Date(givenDate); // Expected format 'YYYY-MM-DD'
+
+        const projectIds = projects.map(project => project.permanent_ucc);
+
+        const attendanceRecords = await prisma.am_attendance.findMany({
+            where: {
+                ucc_id: { in: projectIds },
+                attendance_date: date,
+            },
+        });
+
+        const result = projects.map(project => {
+            // Filter attendance records for the current project
+            const projectAttendance = attendanceRecords.filter(
+                (attendance) => attendance.ucc_id === project.permanent_ucc
+            );
+
+            // Count checked-in and not checked-in users
+            const checkedInCount = projectAttendance.filter(
+                (attendance) => attendance.check_in_time !== null
+            ).length;
+
+            const notInYetCount = projectAttendance.length - checkedInCount;
+
+            return {
+                project_detail: project,
+                checked_in_count: checkedInCount,
+                not_in_yet_count: notInYetCount,
+            };
+        });
+
+        return result;
+    } catch (error) {
+        logger.error({
+            message: RESPONSE_MESSAGES.ERROR.REQUEST_PROCESSING_ERROR,
+            error: error,
+            url: req.url,
+            method: req.method,
+            time: new Date().toISOString(),
+        });
+        throw error;
+    }
+}
