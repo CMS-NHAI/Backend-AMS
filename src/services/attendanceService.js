@@ -146,11 +146,11 @@ export const getMarkInAttendanceCountService=async ( userId,filter,tabValue)=>{
     
     if(filter ==="yesterday"){
       endDate = new Date();
-      
+      endDate.setHours(0, 0, 0, 0);
       startDate = new Date(new Date().setDate(endDate.getDate() - 1))
       whereCondition.attendance_date = {
         gte: startDate,
-        lte: endDate
+        lt: endDate
     };
 
       markedInAttendanceCount = await getTeamAttendaceCount(employeeUserIds,whereCondition)

@@ -213,7 +213,6 @@ export const projectOverviewDetailsforWeb =async(userId,uccId,startDate,endDate,
         }
       }
     })
-    console.log(getProjectWiseAttendance)
     const totalPresentDays = getProjectWiseAttendance? getProjectWiseAttendance.length : 0
     const totalWorkingDays =await getMonthWiseTotalWorkingDays(year,month)
 

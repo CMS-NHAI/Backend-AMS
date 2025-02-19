@@ -80,8 +80,8 @@ export const getProjectOverviewDetail =async (req,res)=>{
 
     export const getProjectOverviewDetailWeb =async (req,res)=>{
     try{
-        const userId =req.user.user_id;
-    let {month,year} = req.query;
+        let userId =req.user.user_id;
+    let {month,year,id} = req.query;
     const currentDate = moment();
     year = year || currentDate.year().toString();
     month = month || (currentDate.month() + 1).toString();
@@ -96,6 +96,10 @@ export const getProjectOverviewDetail =async (req,res)=>{
     
          if (!userId) {
             throw new APIError(STATUS_CODES.UNAUTHORIZED, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING);
+        }
+
+        if(id){
+          userId = Number(id)
         }
     
         const result =await projectOverviewDetailsforWeb(userId,uccId,startDate,endDate,year,month);
