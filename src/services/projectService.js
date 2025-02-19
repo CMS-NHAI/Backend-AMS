@@ -22,7 +22,7 @@ import { calculateTotalworkinghours, getTotalWorkingDays, getMonthWiseTotalWorki
  * @returns {Object} - Returns an object containing the project details.
  * @throws {Error} - Throws an APIError if an issue occurs during database queries or data processing.
  */
-export const getProjectDetails = async (req, userId, date, ucc_id) => {
+export const getProjectDetails = async (req, userId, date, ucc_id, isExport) => {
     try {
         logger.info({
             message: 'Fetching project details.',
@@ -121,8 +121,8 @@ export const getProjectDetails = async (req, userId, date, ucc_id) => {
                 permanent_ucc: true,
                 project_name: true,
             },
-            take: limit,
-            skip: offset,
+            take: isExport ? undefined : limit,
+            skip: isExport ? undefined : offset,
         });
 
         const projectDetails = uccDetails.map((ucc) => {
