@@ -65,7 +65,6 @@ export const getAttendanceOverviewService = async (
     const employeeUserIds = await getAttendanceForHierarchy(
       employeesData.hierarchy
     )
-    console.log(employeeUserIds,"employeeUserIds");
     attendanceRecords = await getTeamAttendance(
       employeeUserIds,
       startDate,
@@ -93,7 +92,7 @@ export const getAttendanceOverviewService = async (
     totalPresent: presentDays,
     attendancePercent: attendancePercent,
     avgWorkHrs: `${avgHours}hr ${avgMinutes}min`,
-    leaves: Maths.abs(absentDays),
+    leaves: Math.abs(absentDays),
     totalEmployees
   }
 }
