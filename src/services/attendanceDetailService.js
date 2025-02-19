@@ -417,7 +417,7 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
           return {
               ...record,
               status,
-              total_hours: calculateTotalHours(record.checkInTime, record.checkOutTime),
+              total_hours: calculateTotalHours(record.check_in_time, record.check_out_time),
               project_name: record.ucc_id ? projectMap[record.ucc_id] || 'Project Not Found' : ''
           };
       });
