@@ -98,10 +98,9 @@ export const updateMarkoutAttendance =async(attendanceData) =>{
       throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.ATTENDANCE_ALREADY_MARKED)
     }
     if(attendanceExists.length > 0 ){
-      const checkOutTime = new Date(attendanceData.check_out_time.replace(' ', 'T') + 'Z').toISOString();
+      const checkOutTime = new Date(attendanceData.check_out_time.replace(' ', 'T') + 'Z');
       const checkInTime = new Date(attendanceExists[0].check_in_time);
-
-      if(checkOutTime < checkInTime){
+      if(checkInTime > checkOutTime){
         throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.CHECKOUT_TIME_IS_INCORRECT)
       }
       
