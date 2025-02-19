@@ -31,10 +31,7 @@
     else{
         dateRange = calculateDateRange(month, year, date);
     }
-    
-    if (project_id) {
-      await validateProject(project_id)
-    }
+
   
     const { records: attendanceRecords, total, currentPage, totalPages } = 
       await fetchAttendanceRecords(userId, dateRange.startDate, dateRange.endDate, project_id, page, limit)
