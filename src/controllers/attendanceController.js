@@ -38,7 +38,6 @@ export const getAttendanceOverview = async (req, res) => {
       data:{...result},
     })
   } catch (error) {
-    console.log(error,"error")
     if (error instanceof APIError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -50,7 +49,7 @@ export const getAttendanceOverview = async (req, res) => {
 }
 
 export const getAttendanceDetails = async (req, res) => {
-  const { month, year, project_id, tabValue, date, exports, page = 1, limit = 10 , user_id} = req.query;
+  const { month, year, project_id, tabValue, date, exports, page = 1, limit = 500 , user_id} = req.query;
   const loggedInUserId = req.user.user_id;
   if(tabValue!=TAB_VALUES.ME && tabValue!=TAB_VALUES.MYTEAM|| !tabValue)
   {
@@ -106,23 +105,10 @@ export const getAttendanceDetails = async (req, res) => {
     }
   } else {
     try {
-    //   if (date) {
-    //   if (!isNaN(date)) {
-    //   if(date!=14)
-    //     {
-    //       return res.status(STATUS_CODES.BAD_REQUEST).json({
-    //         success: false,
-    //         status: STATUS_CODES.BAD_REQUEST,
-    //         message: RESPONSE_MESSAGES.ERROR.LAST_14_DAYS
-    //       }); 
-    //     }
-    //   }
-    // }
+ 
       const employeesData = await getEmployeesHierarchy(loggedInUserId);
-      console.log('employees data ', employeesData);
       const totalEmployees = employeesData?.totalCount;
       const employeeUserIds = await getAttendanceForHierarchy(employeesData.hierarchy);
-      console.log('employee user ids ', employeeUserIds);
       const dateRange = calculateDateRange(month, year, date);
       const attendanceRecords = await getTeamAttendance(
         employeeUserIds,
@@ -130,7 +116,7 @@ export const getAttendanceDetails = async (req, res) => {
         dateRange.endDate,
         project_id
       );
-      console.log("attendance records " , attendanceRecords);
+      
 
       const result = await processTeamAttendance(
         employeeUserIds,
@@ -141,7 +127,7 @@ export const getAttendanceDetails = async (req, res) => {
         parseInt(page),
         parseInt(limit)
       );
-      console.log('result=>>>>>>>>>>>>>>>>> ', result);
+      
     
         if (exports == 'true') {
           let exportTeamAttendanceRecords = [];
@@ -196,9 +182,38 @@ export const getAttendanceDetails = async (req, res) => {
 
 export const getAllProjects = async (req, res) => {
   try {
-    // Get all active projects from ucc_master
-    const projects = await prisma.ucc_master.findMany({
+    const userId = req.user.user_id; // Get logged in user's ID
 
+    // First get all active UCC mappings for this user
+    const userProjects = await prisma.ucc_user_mappings.findMany({
+      where: {
+        user_id: userId,
+        status: 'active'
+      },
+      select: {
+        ucc_id: true
+      }
+    });
+    
+    // Extract ucc_ids from mappings
+    const userUccIds = userProjects.map(project => project.ucc_id);
+    // If no mappings found
+    if (!userUccIds.length) {
+      return res.status(STATUS_CODES.OK).json({
+        success: false,
+        status: STATUS_CODES.OK,
+        message: 'No projects assigned to user',
+        data: []
+      });
+    }
+
+    // Get projects from ucc_master where ucc_id matches user's mappings
+    const projects = await prisma.ucc_master.findMany({
+      where: {
+        id: {
+          in: userUccIds
+        }
+      },
       select: {
         project_name: true,
         id: true,
@@ -212,10 +227,9 @@ export const getAllProjects = async (req, res) => {
         status: true,
         stretch_name: true,
         usc: true
-
       },
       orderBy: {
-        project_name: 'asc'  // Sort alphabetically by project name
+        project_name: 'asc'
       }
     });
 
@@ -228,7 +242,6 @@ export const getAllProjects = async (req, res) => {
         data: []
       });
     }
-
 
     return res.status(STATUS_CODES.OK).json({
       success: true,
@@ -302,23 +315,26 @@ export const markAttendance = async (req, res) => {
 
       const markInAttendancedata = {
         ucc_id: ucc,
-        check_in_time: new Date(checkinTime.replace(' ', 'T')).toISOString(),
+        check_in_time: checkinTime,
         check_in_lat: checkinLat,
         check_in_lng: checkinLon,
         check_in_device_id: checkinDeviceId,
         check_in_ip_address: checkinIpAddress,
         check_in_remarks: checkinRemarks,
-        attendance_date: checkinDate,
+        attendance_date: new Date(checkinTime.replace(' ', 'T')).toISOString(),
         check_in_geofence_status: checkInGeofenceStatus,
         created_by: userId,
         created_at: new Date(),
+        user_id:userId
       };
 
-      await saveAttendance(markInAttendancedata);
+     const attendaceDetails= await saveAttendance(markInAttendancedata);
       processedData.push({
         checkinTime,
         checkinLat,
         checkinLon,
+        attendaceId:attendaceDetails[0].attendance_id
+
       });
     }
 
@@ -333,7 +349,7 @@ export const markAttendance = async (req, res) => {
       return res.status(error.statusCode).json({
         success: false,
         message: error.message,
-        data: null,
+        data: [],
       });
     } else {
       return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
@@ -359,7 +375,7 @@ export const markOutAttendance=async (req,res)=>{
       }
       const markOutAttendancedata = {
       attendance_id:data.attendanceId,
-      check_out_time:new Date(data.checkoutTime.replace(' ', 'T')).toISOString(),
+      check_out_time:data.checkoutTime,
       check_out_lat:data.checkoutLat,
       check_out_lng:data.checkoutLon,
       check_out_device_id:data.checkoutDeviceId,
@@ -372,7 +388,7 @@ export const markOutAttendance=async (req,res)=>{
       await updateMarkoutAttendance(markOutAttendancedata)
     }
     let responseData;
-  if(req.body.attendanceData.length <=1){
+  if(req.body.attendanceData.length == 1){
     responseData ={
       checkoutTime:req.body.attendanceData[0].checkoutTime,
       checkoutLat:req.body.attendanceData[0].checkoutLat,
@@ -506,7 +522,7 @@ export const getUserTodayAttendanceData =async(req,res)=>{
     return res.status(error.statusCode).json({
       success: false,
       message: error.message,
-      data: null
+      data: []
     });
   }
   res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({

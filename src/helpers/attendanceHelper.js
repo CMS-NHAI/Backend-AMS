@@ -86,3 +86,24 @@ export const getTeamUserIds = async (userId, visitedUserId = new Set()) => {
   };
 };
 
+export const getMonthWiseTotalWorkingDays = async(year,month) => {
+  let days = [];
+  const holidays = await holidayList(); // Assume this returns an array of holiday dates in 'YYYY-MM-DD' format
+  
+  // Get the first and last day of the specified month and year
+  const firstDay = new Date(year, month - 1, 1); // months are 0-indexed in JavaScript (January = 0, December = 11)
+  const lastDay = new Date(year, month, 0); // The 0th day of the next month gives us the last day of the current month
+  // Loop through all the days of the month
+  for (let currentDate = firstDay; currentDate <= lastDay; currentDate.setDate(currentDate.getDate() + 1)) {
+    // Format the current date as 'YYYY-MM-DD'
+    let formattedDate = currentDate.toISOString().split('T')[0];
+    
+    // Check if the current day is not a Sunday and is not a holiday
+    if (!isSunday(currentDate) && !holidays.includes(formattedDate)) {
+      days.push(currentDate);
+    }
+  }
+  
+  return days.length;
+};
+

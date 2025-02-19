@@ -7,6 +7,22 @@
     if (!userId) {
       throw new APIError(STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING)
     }
+    const employeeDetails = await prisma.user_master.findFirst({
+      where: {
+        user_id: userId
+      },
+      select: {
+        user_id: true,
+        name: true,
+        email: true,
+        designation: true
+      }
+    });
+  
+    if (!employeeDetails) {
+      throw new APIError(STATUS_CODES.NOT_FOUND, RESPONSE_MESSAGES.ERROR.USER_NOT_FOUND);
+     }
+
     let dateRange = null;
     if(!date)
     {
@@ -36,6 +52,7 @@
       message: 'Attendance details retrieved successfully',
       status: STATUS_CODES.OK,
       data: {
+        employee_details: employeeDetails,
         statistics: processedData.statistics,
         attendance: processedData.groupedAttendance,
         dateRange: {
@@ -206,27 +223,25 @@
       }
     
       // Combine attendance date with check in/out times
-      const checkInTime = record.check_in_time ? new Date(
-        attendanceDate.getFullYear(),
-        attendanceDate.getMonth(),
-        attendanceDate.getDate(),
-        new Date(record.check_in_time).getHours(),
-        new Date(record.check_in_time).getMinutes()
-      ).toISOString() : null;
+      // const checkInTime = record.check_in_time ? new Date(
+      //   attendanceDate.getFullYear(),
+      //   attendanceDate.getMonth(),
+      //   attendanceDate.getDate(),
+      //   new Date(record.check_in_time).getHours(),
+      //   new Date(record.check_in_time).getMinutes()
+      // ).toISOString() : null;
   
-      const checkOutTime = record.check_out_time ? new Date(
-        attendanceDate.getFullYear(),
-        attendanceDate.getMonth(),
-        attendanceDate.getDate(),
-        new Date(record.check_out_time).getHours(),
-        new Date(record.check_out_time).getMinutes()
-      ).toISOString() : null;
+      // const checkOutTime = record.check_out_time ? new Date(
+      //   attendanceDate.getFullYear(),
+      //   attendanceDate.getMonth(),
+      //   attendanceDate.getDate(),
+      //   new Date(record.check_out_time).getHours(),
+      //   new Date(record.check_out_time).getMinutes()
+      // ).toISOString() : null;
     
       return {
         ...record,
-        status, // Add derived status
-        check_in_time: checkInTime,
-        check_out_time: checkOutTime,
+        status,
         total_hours: calculateTotalHours(record.check_in_time, record.check_out_time),
         project_name: projectMap[record.ucc_id] || 'Project Not Found'
       };
@@ -348,10 +363,7 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
                   return recordDate >= startDate && recordDate <= endDate;
               });
           } else {
-              // const targetDate = new Date(date).toISOString().split('T')[0];
-              // employeeAttendance = employeeAttendance.filter(record => 
-              //     new Date(record.attendance_date).toISOString().split('T')[0] === targetDate
-              // );
+              
               const targetDate = new Date(date);
               targetDate.setHours(0, 0, 0, 0);
               
@@ -380,34 +392,32 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
               status = 'Offsite_Present';
             }
           }
-          if (record.check_in_time) {
-              const checkInDate = new Date(record.check_in_time);
-              checkInTime = new Date(
-                  attendanceDate.getFullYear(),
-                  attendanceDate.getMonth(),
-                  attendanceDate.getDate(),
-                  checkInDate.getHours(),
-                  checkInDate.getMinutes()
-              ).toISOString();
-          }
+          // if (record.check_in_time) {
+          //     const checkInDate = new Date(record.check_in_time);
+          //     checkInTime = new Date(
+          //         attendanceDate.getFullYear(),
+          //         attendanceDate.getMonth(),
+          //         attendanceDate.getDate(),
+          //         checkInDate.getHours(),
+          //         checkInDate.getMinutes()
+          //     ).toISOString();
+          // }
 
-          if (record.check_out_time) {
-              const checkOutDate = new Date(record.check_out_time);
-              checkOutTime = new Date(
-                  attendanceDate.getFullYear(),
-                  attendanceDate.getMonth(),
-                  attendanceDate.getDate(),
-                  checkOutDate.getHours(),
-                  checkOutDate.getMinutes()
-              ).toISOString();
-          }
+          // if (record.check_out_time) {
+          //     const checkOutDate = new Date(record.check_out_time);
+          //     checkOutTime = new Date(
+          //         attendanceDate.getFullYear(),
+          //         attendanceDate.getMonth(),
+          //         attendanceDate.getDate(),
+          //         checkOutDate.getHours(),
+          //         checkOutDate.getMinutes()
+          //     ).toISOString();
+          // }
 
           return {
               ...record,
               status,
-              check_in_time: checkInTime,
-              check_out_time: checkOutTime,
-              total_hours: calculateTotalHours(checkInTime, checkOutTime),
+              total_hours: calculateTotalHours(record.checkInTime, record.checkOutTime),
               project_name: record.ucc_id ? projectMap[record.ucc_id] || 'Project Not Found' : ''
           };
       });

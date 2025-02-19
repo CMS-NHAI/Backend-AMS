@@ -9,7 +9,7 @@ import { getTeamUserIds } from "../helpers/attendanceHelper.js";
 import APIError from "../utils/apiError.js";
 import { logger } from "../utils/logger.js";
 import { getTotalUsers, getUsersPresentCount } from "./db/attendaceService.db.js";
-import { calculateTotalworkinghours,getTotalWorkingDays } from "../helpers/attendanceHelper.js";
+import { calculateTotalworkinghours,getTotalWorkingDays,getMonthWiseTotalWorkingDays } from "../helpers/attendanceHelper.js";
 /**
  * Fetches project attendance details for a team based on the provided user ID, date, and UCC ID.
  * This function calculates the total employees and present employees percentage for each UCC project
@@ -167,22 +167,65 @@ export const getProjectDetails = async (req, userId, date, ucc_id) => {
 }
 
 export const projectOverviewDetails = async (userId, uccId, days) => {
+    try{
         const startDate = new Date()
         startDate.setDate(startDate.getDate() - days);
         const totalUsersCount = await getTotalUsers(userId, uccId)
         const totalPresents = await getUsersPresentCount(uccId, startDate)
         const totalWorkHours = await calculateTotalworkinghours(totalPresents)
         const totalDays = await getTotalWorkingDays(days)
-        const totalAbsent = totalUsersCount - totalPresents.length
+        const totalAbsent = totalDays - totalPresents.length
         const attendancePercentage = totalUsersCount > 0 ? (((totalPresents.length / (totalUsersCount * totalDays))) * 100).toFixed(2) : 0
         const averageWorkingHours= totalDays ? (totalWorkHours / totalDays).toFixed(2) : 0
         const avgHours = Math.floor(averageWorkingHours);
         const avgMinutes = Math.round((averageWorkingHours - avgHours) * 60);
-
+        
         return {
             totalPresent: totalPresents.length,
             attendancePercent: attendancePercentage,
             avgWorkHrs: `${avgHours}hr ${avgMinutes}min`,
             leaves: totalAbsent,
           }
+    } catch (error) {
+        console.log(error,"error");
+        throw new APIError(STATUS_CODES.BAD_REQUEST,error.message)
+    }
 }
+
+export const projectOverviewDetailsforWeb =async(userId,uccId,startDate,endDate,year,month)=>{
+
+    const projectExists = await prisma.ucc_master.findFirst({
+        where:{
+            id:uccId
+        }
+    })
+    if(!projectExists){
+        throw new APIError(STATUS_CODES.NOT_FOUND,RESPONSE_MESSAGES.ERROR.PROJECT_NOT_FOUND)
+    }
+
+   const getProjectWiseAttendance = await prisma.am_attendance.findMany({
+      where:{
+        user_id:userId,
+        ucc_id:uccId,
+        attendance_date:{
+          gt:startDate,
+          lte:endDate
+        }
+      }
+    })
+    console.log(getProjectWiseAttendance)
+    const totalPresentDays = getProjectWiseAttendance? getProjectWiseAttendance.length : 0
+    const totalWorkingDays =await getMonthWiseTotalWorkingDays(year,month)
+
+    const totalAbsents = Math.abs(totalWorkingDays - totalPresentDays)
+    const attendancePercentage = totalPresentDays ? (totalPresentDays/totalWorkingDays * 100).toFixed(2) : 0
+    const totalWorkHours = await calculateTotalworkinghours(getProjectWiseAttendance)
+    const averageWorkingHours=  totalPresentDays? (totalWorkHours / totalWorkingDays).toFixed(2) : 0
+
+    return {
+        totalPresentDays,
+        totalAbsents,
+        averageWorkingHours,
+        attendancePercentage
+    }
+  }  

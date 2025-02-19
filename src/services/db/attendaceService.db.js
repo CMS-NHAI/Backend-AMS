@@ -64,16 +64,23 @@ export const getTeamAttendance = async (employeeUserIds, startDate, endDate, pro
 export const saveAttendance = async (attendance) => {
   const lat = attendance.check_in_lat;
   const long = attendance.check_in_lng;
- try{
-  await prisma.$queryRaw`
+  const existingAttendance = await prisma.am_attendance.findFirst({
+    where: {
+      user_id: attendance.user_id,
+      ucc_id: attendance.ucc_id,
+      attendance_date: attendance.attendance_date,
+    },
+  });
+  if(existingAttendance){
+    throw new APIError(STATUS_CODES.OK,RESPONSE_MESSAGES.SUCCESS.RECORD_ALREADY_EXISTS)
+  }else{
+  return await prisma.$queryRaw`
   INSERT INTO tenant_nhai.am_attendance
-  ("ucc_id", "check_in_time", "check_in_lat", "check_in_lng", "check_in_loc", "check_in_remarks","check_in_geofence_status", "attendance_date", "created_by", "created_at")
+  ("ucc_id", "check_in_time", "check_in_lat", "check_in_lng", "check_in_loc", "check_in_remarks","check_in_geofence_status", "attendance_date", "created_by", "created_at","user_id")
   VALUES
   (${attendance.ucc_id}, ${attendance.check_in_time}::timestamp, ${attendance.check_in_lat}::numeric, ${attendance.check_in_lng}::numeric, 
     public.ST_GeographyFromText('SRID=4326;POINT(' || ${lat} || ' ' || ${long} || ')'), 
-  ${attendance.check_in_remarks},${attendance.check_in_geofence_status}, ${attendance.attendance_date}::date, ${attendance.created_by}, NOW())`;
-}catch(error){
-  throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.MARKIN_ATTENDANCE_UPDATE_FAILED)
+  ${attendance.check_in_remarks},${attendance.check_in_geofence_status}, ${attendance.attendance_date}::date, ${attendance.created_by}, NOW(),${attendance.user_id}) RETURNING "attendance_id"`;
 }
 }
 
@@ -82,6 +89,12 @@ export const updateMarkoutAttendance =async(attendanceData) =>{
   const lat=attendanceData.check_out_lat
   const long=attendanceData.check_out_lng
   try{
+    const attendanceExists = await prisma.am_attendance.findMany({
+      where:{
+        attendance_id:attendanceData.attendance_id
+      }
+    })
+    if(attendanceExists?.length > 0){
     await prisma.$queryRaw`
     UPDATE tenant_nhai.am_attendance
     SET 
@@ -95,6 +108,9 @@ export const updateMarkoutAttendance =async(attendanceData) =>{
       "updated_at" = NOW()
     WHERE "attendance_id" = ${attendanceData.attendance_id};
   `;
+    }else{
+      return []
+    }
   
   }catch(error){
     throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.MARKOUT_ATTENDANCE_UPDATE_FAILED)
@@ -173,6 +189,9 @@ export const getTodayAttendance = async (userId, date) => {
       } else {
         data.locationStatus = "Offsite";
       }
+    }
+    if(!data.check_out_time){
+      data.check_out_geofence_status = ''
     }
 
     if (data.check_in_time && data.check_out_time) {
