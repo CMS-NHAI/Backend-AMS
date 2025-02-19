@@ -170,6 +170,15 @@ export const projectOverviewDetails = async (userId, uccId, days) => {
     try{
         const startDate = new Date()
         startDate.setDate(startDate.getDate() - days);
+        const projectExists = await prisma.ucc_master.findFirst({
+            where:{
+                id:uccId
+            }
+        })
+          if(!projectExists){
+            throw new APIError(STATUS_CODES.NOT_FOUND,RESPONSE_MESSAGES.ERROR.PROJECT_NOT_FOUND)
+          }
+        
         const totalUsersCount = await getTotalUsers(userId, uccId)
         const totalPresents = await getUsersPresentCount(uccId, startDate)
         const totalWorkHours = await calculateTotalworkinghours(totalPresents)
