@@ -18,6 +18,7 @@ import { TAB_VALUES } from '../constants/attendanceConstant.js';
 import { exportToCSV } from '../utils/attendaceUtils.js';
 import { RESPONSE_MESSAGES } from '../constants/responseMessages.js';
 import { fetchCheckedInEmployees, getEmployeesByProject } from '../services/employeeService.js';
+import { getProjectAttendanceCount } from '../services/projectService.js';
 const prisma = new PrismaClient();
 /**
  * Get Attendace Overview of a user by Id.
@@ -243,15 +244,16 @@ export const getAllProjects = async (req, res) => {
       });
     }
 
+    const response = await getProjectAttendanceCount(req, projects);
+
     return res.status(STATUS_CODES.OK).json({
       success: true,
       status: STATUS_CODES.OK,
       message: 'Projects retrieved successfully',
-      data: projects
+      data: response
     });
 
   } catch (error) {
-    console.error('Error fetching projects:', error);
     return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
       success: false,
       status: STATUS_CODES.INTERNAL_SERVER_ERROR,
