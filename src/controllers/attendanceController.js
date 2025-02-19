@@ -184,6 +184,7 @@ export const getAttendanceDetails = async (req, res) => {
 export const getAllProjects = async (req, res) => {
   try {
     const userId = req.user.user_id; // Get logged in user's ID
+    const date = req.query?.date;
 
     // First get all active UCC mappings for this user
     const userProjects = await prisma.ucc_user_mappings.findMany({
@@ -244,13 +245,11 @@ export const getAllProjects = async (req, res) => {
       });
     }
 
-    const response = await getProjectAttendanceCount(req, projects);
-
     return res.status(STATUS_CODES.OK).json({
       success: true,
       status: STATUS_CODES.OK,
       message: 'Projects retrieved successfully',
-      data: response
+      data: date ? await getProjectAttendanceCount(req, projects, date) : projects
     });
 
   } catch (error) {

@@ -242,9 +242,8 @@ export const projectOverviewDetailsforWeb =async(userId,uccId,startDate,endDate,
  * @returns {Array} - An array of objects, each containing the project details along with the attendance counts.
  * @throws {Error} - Throws an error if an issue occurs while processing the attendance data.
  */
-export const getProjectAttendanceCount = async (req, projects) => {
+export const getProjectAttendanceCount = async (req, projects, givenDate) => {
     try {
-        const givenDate = req.query?.date;
         const date = new Date(givenDate); // Expected format 'YYYY-MM-DD'
 
         const projectIds = projects.map(project => project.permanent_ucc);
