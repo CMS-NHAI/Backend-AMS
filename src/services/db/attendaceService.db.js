@@ -151,7 +151,8 @@ export const getTodayAttendance = async (userId, date) => {
       check_out_time: true,
       attendance_date: true,
       check_in_geofence_status: true,
-      check_out_geofence_status: true
+      check_out_geofence_status: true,
+      attendance_id:true
     }
   });
 
