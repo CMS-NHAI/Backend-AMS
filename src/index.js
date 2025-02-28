@@ -20,7 +20,7 @@ app.use(compression())
 app.use(cors())
 app.use(express.json())
 
-app.use("/ams/api/v1", centralizedRoutes);
+app.use("/backend/ams/api/v1", centralizedRoutes);
 
 const PORT = process.env.PORT || 3001
 // const server = http.createServer(app);
