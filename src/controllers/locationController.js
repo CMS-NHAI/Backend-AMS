@@ -65,7 +65,7 @@ export const fetchNearestProject = async (req, res) => {
         });
 
         if (err instanceof APIError) {
-            res.status(STATUS_CODES.OK).json({
+            return res.status(STATUS_CODES.OK).json({
                 success: true,
                 message: err.message
             })
