@@ -22,7 +22,7 @@ async function fetchUccIdsForUser(userId, req) {
         status: STRING_CONSTANT.SUCCESS,
         time: new Date().toISOString(),
     });
-    const attendance = await prisma.am_attendance.findMany({
+    const attendance = await prisma.ucc_user_mappings.findMany({
         where: {
             user_id: parseInt(userId),
         },
