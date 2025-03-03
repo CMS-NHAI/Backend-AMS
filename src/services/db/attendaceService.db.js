@@ -3,6 +3,8 @@ import { prisma } from '../../config/prismaClient.js'
 import { RESPONSE_MESSAGES } from '../../constants/responseMessages.js';
 import { STATUS_CODES } from '../../constants/statusCodeConstants.js';
 import APIError from '../../utils/apiError.js';
+import { holidayList,isSunday } from "../../helpers/helpers.js";
+
 
 export const getUserAttendance = async (userId, startDate, endDate,id) => {
   if(id){
@@ -11,7 +13,7 @@ export const getUserAttendance = async (userId, startDate, endDate,id) => {
   return await prisma.am_attendance.findMany({
     where: {
       user_id: userId,
-      attendance_date: { gte: startDate, lt: endDate },
+      attendance_date: { gte: startDate, lte: endDate },
     },
   })
 }
@@ -64,6 +66,17 @@ export const getTeamAttendance = async (employeeUserIds, startDate, endDate, pro
 export const saveAttendance = async (attendance) => {
   const lat = attendance.check_in_lat;
   const long = attendance.check_in_lng;
+
+  const holidays = await holidayList()
+  
+      let date = new Date(attendance.attendance_date)
+      let formattedDate = attendance.attendance_date.split('T')[0];
+      if (holidays.includes(formattedDate)) {
+        throw new APIError(STATUS_CODES.BAD_REQUEST,"Cannot Mark Attendance on Holiday")
+      }
+      if(isSunday(date)){
+        throw new APIError(STATUS_CODES.BAD_REQUEST,"Cannot Mark Attendance on Sunday")
+      }
 
   const projectExists = await prisma.ucc_master.findFirst({
     where:{
