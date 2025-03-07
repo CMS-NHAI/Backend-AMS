@@ -102,7 +102,6 @@ export async function getUccDetails(lat, long, userId, req) {
 
     const result = await prisma.$queryRaw`
             SELECT 
-                ogc_fid, 
                 cs.ucc, 
                 public.ST_Distance(public.ST_SetSRID(public.ST_MakePoint(${parseFloat(lat)}, ${parseFloat(long)}), 4326), cs.wkb_geometry) AS distance_in_meters,
                 um.project_name
