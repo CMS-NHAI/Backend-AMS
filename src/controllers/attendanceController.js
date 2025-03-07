@@ -20,6 +20,7 @@ import { RESPONSE_MESSAGES } from '../constants/responseMessages.js';
 import { fetchCheckedInEmployees, getEmployeesByProject } from '../services/employeeService.js';
 import { getProjectAttendanceCount } from '../services/projectService.js';
 import { calculateTotalHours } from '../services/attendanceDetailService.js';
+
 const prisma = new PrismaClient();
 /**
  * Get Attendace Overview of a user by Id.
@@ -295,8 +296,20 @@ export const getTeamAttendanceDetails = async (req, res) => {
   
 };
 
+async function checkTotalHoliday() {
+    const result = await prisma.holiday_master.findFirst({});
+    return result ? result : {};
+}
+
 export const determineStatus = (record) => {
+  // compare holiday date start
+  const isHoliday = checkTotalHoliday();
+  if(isHoliday === record.date) return 'Holiday'
+  // compare holiday date end
+
   if (!record.check_in_time) return 'Absent';
+  // compare holiday date start
+
   
   const checkInStatus = record.check_in_geofence_status?.toUpperCase();
   const checkOutStatus = record.check_out_geofence_status?.toUpperCase();
