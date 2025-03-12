@@ -715,6 +715,22 @@ export const markOfflineAttendance = async (req, res) => {
       if (faceauthstatus === "no") {
         throw new APIError(STATUS_CODES.NOT_ACCEPTABLE, RESPONSE_MESSAGES.ERROR.INVALID_FACEAUTHSTATUS);
       }
+
+      const checkinDateTime = new Date(checkinTime.replace(' ', 'T') + 'Z');
+      const checkoutDateTime = checkoutTime ? new Date(checkoutTime.replace(' ', 'T') + 'Z') : null;
+      if (checkoutDateTime && checkoutDateTime < checkinDateTime) {
+        throw new APIError(
+          STATUS_CODES.BAD_REQUEST,
+          RESPONSE_MESSAGES.ERROR.CHECKOUT_TIME_SHOULD_BE_AFTER_CHECKIN
+        );
+      }
+      // Validate mark in and mark out time difference
+      if (checkoutDateTime) {
+        const timeDifference = (checkoutDateTime - checkinDateTime) / (1000 * 60 * 60); // Convert ms to hours
+        if (timeDifference > 24) {
+          throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.CHECKOUT_TIME_SHOULD_BE_LESS_THAN_24_HOURS);
+        }
+      }
       const markInOfflineAttendancedata = {
         ucc_id: ucc,
         check_in_time: checkinTime,
@@ -758,6 +774,7 @@ export const markOfflineAttendance = async (req, res) => {
     });
 
   } catch (error) {
+    console.log(error,"error faced")
     if (error instanceof APIError) {
       return res.status(error.statusCode).json({
         success: false,

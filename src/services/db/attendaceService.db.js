@@ -319,7 +319,7 @@ export const saveOfflineAttendance = async (attendance) => {
     public.ST_GeographyFromText('SRID=4326;POINT(' || ${lat} || ' ' || ${long} || ')'), 
   ${attendance.check_in_remarks},${attendance.check_in_geofence_status}, ${attendance.attendance_date}::date, ${attendance.created_by}, NOW(),
   ${attendance.user_id},${attendance.check_out_time || null}::timestamp,${attendance.check_out_lat || null}::numeric,${attendance.check_out_lng || null}::numeric,
-  public.ST_GeographyFromText('SRID=4326;POINT(' || ${markoutLat} || ' ' || ${markoutLong} || ')') || null,${attendance.check_out_remarks || null},${attendance.check_out_geofence_status || null},${attendance.updated_by || null},NOW()) RETURNING "attendance_id"`;
+  public.ST_GeographyFromText('SRID=4326;POINT(' || ${markoutLat} || ' ' || ${markoutLong} || ')') ,${attendance.check_out_remarks || null},${attendance.check_out_geofence_status || null},${attendance.updated_by || null},NOW()) RETURNING "attendance_id"`;
   } else {
     return await prisma.$queryRaw`
   INSERT INTO tenant_nhai.am_attendance
