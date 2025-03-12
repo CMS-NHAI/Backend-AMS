@@ -28,7 +28,7 @@ export const getLocationDetails = async (req, res) => {
     const attendanceId = req.query?.attendanceId;
 
     if (!userId || !date || !uccNo || !type) {
-        res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.INVALID_REQUEST });
+        return res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.INVALID_REQUEST });
     }
 
     try {
@@ -80,7 +80,7 @@ export const getLocationDetails = async (req, res) => {
                     data.check_in_loc = JSON.parse(data.check_in_loc);
                 });
             } else {
-                res.status(200).json({ status: true, data: { message: RESPONSE_MESSAGES.SUCCESS.NO_TEAM_MEMBERS } })
+                return res.status(200).json({ status: true, data: { message: RESPONSE_MESSAGES.SUCCESS.NO_TEAM_MEMBERS } })
             }
 
 
@@ -88,7 +88,7 @@ export const getLocationDetails = async (req, res) => {
 
             return { attendanceData, stretchLineData };
         } else {
-            res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.INVALID_TYPE });
+            return res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.INVALID_TYPE });
         }
     } catch (error) {
         logger.error({

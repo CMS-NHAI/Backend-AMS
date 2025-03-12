@@ -98,6 +98,7 @@ export const getAttendanceOverviewService = async (
 }
 
 export const getEmployeesHierarchy = async (userId) => {
+  
   const employees = await prisma.user_master.findMany({
     where: {
       parent_id: userId,
@@ -175,4 +176,20 @@ throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.RECORD_FETCH
 export const getUserAttendanceAndProjectDetailsService=async(userId)=>{
   const date = new Date()
   return await getTodayAttendance(userId,date)
+}
+
+export const getGeoFenceStatus =async (ucc,lat,long) =>{
+return await prisma.$queryRaw`SELECT 
+ogc_fid, 
+cs.ucc, 
+public.ST_Distance(
+    public.ST_SetSRID(public.ST_MakePoint(${lat}, ${long}), 4326), 
+    cs.wkb_geometry
+) AS distance_in_meters
+FROM 
+nhai_gis.nhaicenterlines cs
+
+WHERE 
+cs.ucc=${ucc};
+`
 }

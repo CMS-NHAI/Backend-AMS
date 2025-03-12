@@ -94,7 +94,6 @@ export async function getUccDetails(lat, long, userId, req) {
             allUccs: [],
             nearestUcc: null,
             message: RESPONSE_MESSAGES.SUCCESS.NO_UCC_FOUND
-
         };
     }
 
@@ -102,7 +101,6 @@ export async function getUccDetails(lat, long, userId, req) {
 
     const result = await prisma.$queryRaw`
             SELECT 
-                ogc_fid, 
                 cs.ucc, 
                 public.ST_Distance(public.ST_SetSRID(public.ST_MakePoint(${parseFloat(lat)}, ${parseFloat(long)}), 4326), cs.wkb_geometry) AS distance_in_meters,
                 um.project_name
@@ -120,7 +118,7 @@ export async function getUccDetails(lat, long, userId, req) {
     if (result.length === 0) {
 
         return {
-            statusCode: 404,
+            statusCode: STATUS_CODES.NOT_FOUND,
             allUccs: uccIds,
             nearestUcc: null,
             message: RESPONSE_MESSAGES.SUCCESS.NO_UCC_FOUND,
@@ -145,18 +143,20 @@ export async function getUccDetails(lat, long, userId, req) {
         ? { message: RESPONSE_MESSAGES.SUCCESS.OUTSIDE_WORK_AREA, geoFenceStatus: STRING_CONSTANT.OUTSIDE }
         : { message: RESPONSE_MESSAGES.SUCCESS.INSIDE_WORK_AREA, geoFenceStatus: STRING_CONSTANT.INSIDE };
 
-    uccs.forEach(ucc => {
-        if (ucc.ucc_id === nearestUcc.ucc) {
-            ucc["ogc_fid"] = (nearestUcc.ogc_fid);
-            ucc["distance_in_meters"] = nearestUcc.distance_in_meters;
-            ucc.isNearest = true;
-            ucc['message'] = status.message;
-        }
+    const uccsWithDetails = uccs.map((ucc) => {
+        const uccDistance = result.find(r => r.ucc === ucc.ucc_id)?.distance_in_meters || null;
+
+        ucc["distance_in_meters"] = uccDistance;
+        ucc.isNearest = ucc.ucc_id === nearestUcc.ucc;
+        ucc['message'] = status.message;
+
+        return ucc;
     });
 
     return {
         status,
-        uccs, holidayDetails: {
+        uccs: uccsWithDetails, 
+        holidayDetails: {
             holiday_name: isHoliday.holiday_name,
             holiday_Date: isHoliday.holiday_Date,
             region: isHoliday.region,
