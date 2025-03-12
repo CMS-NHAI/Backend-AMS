@@ -36,7 +36,9 @@ export const RESPONSE_MESSAGES = {
     FAILED_TO_FETCH_PROJECT_OVERVIEW_DETAILS:"Failed to Fetch Project Overview Details",
     USER_NOT_FOUND : "User Not Exist",
     CHECKOUT_TIME_IS_INCORRECT: "Checkout Time Is Incorrect",
-    ATTENDANCE_ALREADY_MARKED:"Attendance Is Already Marked or Record not found"
+    ATTENDANCE_ALREADY_MARKED:"Attendance Is Already Marked or Record not found",
+    CHECKOUT_TIME_SHOULD_BE_AFTER_CHECKIN:"Check-out time should be after check-in time",
+    CHECKOUT_TIME_SHOULD_BE_LESS_THAN_24_HOURS:"Check-out time should be less than 24 hours",
     
   },
   SUCCESS: {
