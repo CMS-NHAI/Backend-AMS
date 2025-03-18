@@ -4,7 +4,7 @@ import express from 'express'
 import { getAttendanceOverview , getAttendanceDetails, getTeamAttendanceDetails, getAllProjects,getTeamAttendanceCount,markAttendance,markOutAttendance, checkedInEmployees,getUserTodayAttendanceData, fetchEmployeesByProject,markOfflineAttendance} from '../controllers/attendanceController.js'
 import {validate} from '../middlewares/validate.js'
 import { validateToken } from '../middlewares/validateToken.js'
-import { fetchlocationBydate, fetchNearestProject } from '../controllers/locationController.js'
+import { fetchlocationBydate, fetchNearestProject, getBufferAroundUcc } from '../controllers/locationController.js'
 
 import { fetchProjectDetails,getProjectOverviewDetail, getProjectOverviewDetailWeb } from '../controllers/projectController.js'
 import { STRING_CONSTANT } from '../constants/stringConstant.js'
@@ -33,6 +33,7 @@ router.get("/myProjectEmployees/:uccId",validateToken,
 );
 router.get("/UserTodayAttendance",validateToken,getUserTodayAttendanceData)
 router.post("/markOfflineAttendance",validateToken,markOfflineAttendance)
+router.get("/fetchUccGeoJson",validateToken,getBufferAroundUcc);
 
 
 export default router
