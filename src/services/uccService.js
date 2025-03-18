@@ -94,7 +94,6 @@ export async function getUccDetails(lat, long, userId, req) {
             allUccs: [],
             nearestUcc: null,
             message: RESPONSE_MESSAGES.SUCCESS.NO_UCC_FOUND
-
         };
     }
 

@@ -3,7 +3,9 @@ import { prisma } from '../../config/prismaClient.js'
 import { RESPONSE_MESSAGES } from '../../constants/responseMessages.js';
 import { STATUS_CODES } from '../../constants/statusCodeConstants.js';
 import APIError from '../../utils/apiError.js';
-import { holidayList,isSunday } from "../../helpers/helpers.js";
+import { holidayList, isSunday } from "../../helpers/helpers.js";
+import { getGeoFenceStatus } from "../attendanceService.js";
+import { STRING_CONSTANT } from '../../constants/stringConstant.js';
 
 
 export const getUserAttendance = async (userId, startDate, endDate,id) => {
@@ -258,4 +260,73 @@ const presentCount = await prisma.am_attendance.findMany({
   }
 })
 return presentCount
+}
+
+export const saveOfflineAttendance = async (attendance) => {
+  const lat = attendance.check_in_lat;
+  const long = attendance.check_in_lng;
+
+  const markoutLat = attendance.check_out_lat;
+  const markoutLong = attendance.check_out_lng;
+
+  const holidays = await holidayList()
+
+  let date = new Date(attendance.attendance_date)
+  let formattedDate = attendance.attendance_date.split('T')[0];
+  if (holidays.includes(formattedDate)) {
+    throw new APIError(STATUS_CODES.BAD_REQUEST, "Cannot Mark Attendance on Holiday")
+  }
+  if (isSunday(date)) {
+    throw new APIError(STATUS_CODES.BAD_REQUEST, "Cannot Mark Attendance on Sunday")
+  }
+
+  const projectExists = await prisma.ucc_master.findFirst({
+    where: {
+      id: attendance.ucc_id
+    }
+  })
+  if (!projectExists) {
+    throw new APIError(STATUS_CODES.NOT_FOUND, RESPONSE_MESSAGES.ERROR.PROJECT_NOT_FOUND)
+  }
+  const existingAttendance = await prisma.am_attendance.findFirst({
+    where: {
+      user_id: attendance.user_id,
+      ucc_id: attendance.ucc_id,
+      attendance_date: attendance.attendance_date,
+    },
+  });
+  if (existingAttendance) {
+    throw new APIError(STATUS_CODES.OK, RESPONSE_MESSAGES.SUCCESS.RECORD_ALREADY_EXISTS)
+  }
+  const markinDistanceData = await getGeoFenceStatus(attendance.ucc_id, lat, long);
+  if (markinDistanceData[0]?.distance > 200) {
+    attendance.check_in_geofence_status = STRING_CONSTANT.OUTSIDE
+  } else {
+    attendance.check_in_geofence_status = STRING_CONSTANT.INSIDE
+  }
+  if (attendance.check_out_time && attendance.check_out_lat && attendance.check_out_lng ) {
+    const markoutDistanceData = await getGeoFenceStatus(attendance.ucc_id, markoutLat, markoutLong);
+    if (markoutDistanceData[0]?.distance > 200) {
+      attendance.check_out_geofence_status = STRING_CONSTANT.OUTSIDE
+    } else {
+      attendance.check_out_geofence_status = STRING_CONSTANT.INSIDE
+    }
+    return await prisma.$queryRaw`
+  INSERT INTO tenant_nhai.am_attendance
+  ("ucc_id", "check_in_time", "check_in_lat", "check_in_lng", "check_in_loc", "check_in_remarks","check_in_geofence_status", "attendance_date", "created_by", "created_at","user_id","check_out_time","check_out_lat","check_out_lng","check_out_loc","check_out_remarks","check_out_geofence_status","updated_by","updated_at")
+  VALUES
+  (${attendance.ucc_id}, ${attendance.check_in_time}::timestamp, ${attendance.check_in_lat}::numeric, ${attendance.check_in_lng}::numeric, 
+    public.ST_GeographyFromText('SRID=4326;POINT(' || ${lat} || ' ' || ${long} || ')'), 
+  ${attendance.check_in_remarks},${attendance.check_in_geofence_status}, ${attendance.attendance_date}::date, ${attendance.created_by}, NOW(),
+  ${attendance.user_id},${attendance.check_out_time || null}::timestamp,${attendance.check_out_lat || null}::numeric,${attendance.check_out_lng || null}::numeric,
+  public.ST_GeographyFromText('SRID=4326;POINT(' || ${markoutLat} || ' ' || ${markoutLong} || ')') ,${attendance.check_out_remarks || null},${attendance.check_out_geofence_status || null},${attendance.updated_by || null},NOW()) RETURNING "attendance_id"`;
+  } else {
+    return await prisma.$queryRaw`
+  INSERT INTO tenant_nhai.am_attendance
+  ("ucc_id", "check_in_time", "check_in_lat", "check_in_lng", "check_in_loc", "check_in_remarks","check_in_geofence_status", "attendance_date", "created_by", "created_at","user_id")
+  VALUES
+  (${attendance.ucc_id}, ${attendance.check_in_time}::timestamp, ${attendance.check_in_lat}::numeric, ${attendance.check_in_lng}::numeric, 
+    public.ST_GeographyFromText('SRID=4326;POINT(' || ${lat} || ' ' || ${long} || ')'), 
+  ${attendance.check_in_remarks},${attendance.check_in_geofence_status}, ${attendance.attendance_date}::date, ${attendance.created_by}, NOW(),${attendance.user_id}) RETURNING "attendance_id"`;
+  }
 }
