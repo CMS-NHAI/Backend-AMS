@@ -103,7 +103,7 @@ export async function getUccDetails(lat, long, userId, req) {
             SELECT 
                 cs.ucc, 
                 public.ST_Distance(public.ST_SetSRID(public.ST_MakePoint(${parseFloat(lat)}, ${parseFloat(long)}), 4326), cs.wkb_geometry) AS distance_in_meters,
-                um.project_name
+                cs.projectname
             FROM 
                 nhai_gis.nhaicenterlines cs
             LEFT JOIN
@@ -155,7 +155,7 @@ export async function getUccDetails(lat, long, userId, req) {
 
     return {
         status,
-        uccs: uccsWithDetails, 
+        uccs: uccsWithDetails,
         holidayDetails: {
             holiday_name: isHoliday.holiday_name,
             holiday_Date: isHoliday.holiday_Date,
@@ -173,4 +173,46 @@ async function checkHoliday() {
     });
 
     return result ? result : {};
+}
+
+export async function getUccsBuffer(userId, req) {
+    try {
+        const uccs = await fetchUccIdsForUser(userId, req);
+
+        if (uccs.length === 0) {
+            return {
+                statusCode: 404,
+                message: RESPONSE_MESSAGES.SUCCESS.NO_UCC_FOR_USERID,
+                data: [],
+                message: RESPONSE_MESSAGES.SUCCESS.NO_UCC_FOUND
+            };
+        }
+
+        const uccIds = uccs.map(ucc => ucc.ucc_id);
+
+        const result = await prisma.$queryRaw`
+            SELECT DISTINCT ON (cs.ucc) 
+                cs.id,
+                cs.projectname,
+                state,
+                public.ST_AsGeoJSON(cs.wkb_geometry) AS geom_geojson,
+                cs.ucc
+                FROM 
+                    nhai_gis.nhaicenterlines cs
+                LEFT JOIN
+                    tenant_nhai.ucc_master um
+                ON
+                    cs.ucc = um.permanent_ucc
+                WHERE 
+                    cs.ucc IN (${Prisma.join(uccIds)})
+                ORDER BY cs.ucc, cs.id;
+          `;
+
+        return result.map(item => ({
+            ...item,
+            geom_geojson: JSON.parse(item.geom_geojson)
+        }));;
+    } catch (error) {
+        throw error;
+    }
 }
