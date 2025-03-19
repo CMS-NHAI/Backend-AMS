@@ -9,7 +9,7 @@ import { STATUS_CODES } from '../constants/statusCodeConstants.js'
 import { getAttendanceOverviewService ,getMarkInAttendanceCountService,getUserAttendanceAndProjectDetailsService} from '../services/attendanceService.js'
 import { getAttendanceService } from '../services/attendanceDetailService.js'
 import { getEmployeesHierarchy, getAttendanceForHierarchy } from '../services/attendanceService.js'
-import { getTeamAttendance,saveAttendance,updateMarkoutAttendance } from '../services/db/attendaceService.db.js';
+import { getTeamAttendance, saveAttendance, updateMarkoutAttendance,saveOfflineAttendance } from '../services/db/attendaceService.db.js';
 import { calculateDateRange } from '../services/attendanceDetailService.js';
 import { processTeamAttendance } from '../services/attendanceDetailService.js';
 import APIError from '../utils/apiError.js';
@@ -679,4 +679,113 @@ export const getUserTodayAttendanceData =async(req,res)=>{
     message: error.message
   });
 }
+}
+
+
+export const markOfflineAttendance = async (req, res) => {
+  try {
+    const userId = req.user.user_id;
+    if (!userId) {
+      throw new APIError(STATUS_CODES.UNAUTHORIZED, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING);
+    }
+
+    const attendanceDataArray = req.body.attendanceData; // Assuming attendanceData is an array of objects
+    if (!Array.isArray(attendanceDataArray) || attendanceDataArray.length === 0) {
+      throw new APIError(STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.INVALID_ATTENDANCE_DATA);
+    }
+
+    const processedData = [];
+
+    for (const attendanceData of attendanceDataArray) {
+      const { ucc, faceauthstatus, checkinTime, checkinLat, 
+        checkinLon, 
+        checkinDeviceId, 
+        checkinIpAddress, 
+        checkinRemarks, 
+        checkinDate, 
+        checkInGeofenceStatus, 
+        checkoutTime, 
+        checkoutDeviceId,
+        checkoutIpAddress,
+        checkoutGeofenceStatus,
+        checkoutRemarks,
+        checkoutLat,
+        checkoutLon } = attendanceData;
+
+      if (faceauthstatus === "no") {
+        throw new APIError(STATUS_CODES.NOT_ACCEPTABLE, RESPONSE_MESSAGES.ERROR.INVALID_FACEAUTHSTATUS);
+      }
+
+      const checkinDateTime = new Date(checkinTime.replace(' ', 'T') + 'Z');
+      const checkoutDateTime = checkoutTime ? new Date(checkoutTime.replace(' ', 'T') + 'Z') : null;
+      if (checkoutDateTime && checkoutDateTime < checkinDateTime) {
+        throw new APIError(
+          STATUS_CODES.BAD_REQUEST,
+          RESPONSE_MESSAGES.ERROR.CHECKOUT_TIME_SHOULD_BE_AFTER_CHECKIN
+        );
+      }
+      // Validate mark in and mark out time difference
+      if (checkoutDateTime) {
+        const timeDifference = (checkoutDateTime - checkinDateTime) / (1000 * 60 * 60); // Convert ms to hours
+        if (timeDifference > 24) {
+          throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.CHECKOUT_TIME_SHOULD_BE_LESS_THAN_24_HOURS);
+        }
+      }
+      const markInOfflineAttendancedata = {
+        ucc_id: ucc,
+        check_in_time: checkinTime,
+        check_in_lat: checkinLat,
+        check_in_lng: checkinLon,
+        check_in_device_id: checkinDeviceId,
+        check_in_ip_address: checkinIpAddress,
+        check_in_remarks: checkinRemarks,
+        attendance_date: new Date(checkinTime.replace(' ', 'T') + 'Z').toISOString(),
+        check_in_geofence_status: checkInGeofenceStatus,
+        created_by: userId,
+        created_at: new Date(),
+        user_id: userId,
+        check_out_time: checkoutTime,
+        check_out_lat: checkoutLat,
+        check_out_lng: checkoutLon,
+        check_out_device_id: checkoutDeviceId,
+        check_out_ip_address: checkoutIpAddress,
+        check_out_remarks: checkoutRemarks,
+        check_out_geofence_status: checkoutGeofenceStatus,
+        updated_by: userId,
+        updated_at: new Date()
+      };
+
+      const attendaceDetails = await saveOfflineAttendance(markInOfflineAttendancedata);
+      processedData.push({
+        checkinTime,
+        checkinLat,
+        checkinLon,
+        attendaceId: attendaceDetails[0].attendance_id,
+        checkoutTime,
+        checkoutLat,
+        checkoutLon
+      });
+    }
+
+    return res.status(STATUS_CODES.OK).json({
+      success: true,
+      message: RESPONSE_MESSAGES.SUCCESS.ATTENDACE_MARKED_SUCCESSFULLY,
+      data: processedData, // Returning processed data of all attendance records
+    });
+
+  } catch (error) {
+    console.log(error,"error faced")
+    if (error instanceof APIError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+        data: [],
+      });
+    } else {
+      return res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
+        status: false,
+        message: error.message,
+      });
+    }
+  }
 }

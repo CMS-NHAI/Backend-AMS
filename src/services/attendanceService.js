@@ -177,3 +177,19 @@ export const getUserAttendanceAndProjectDetailsService=async(userId)=>{
   const date = new Date()
   return await getTodayAttendance(userId,date)
 }
+
+export const getGeoFenceStatus =async (ucc,lat,long) =>{
+return await prisma.$queryRaw`SELECT 
+ogc_fid, 
+cs.ucc, 
+public.ST_Distance(
+    public.ST_SetSRID(public.ST_MakePoint(${lat}, ${long}), 4326), 
+    cs.wkb_geometry
+) AS distance_in_meters
+FROM 
+nhai_gis.nhaicenterlines cs
+
+WHERE 
+cs.ucc=${ucc};
+`
+}
