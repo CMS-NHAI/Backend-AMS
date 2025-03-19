@@ -114,7 +114,6 @@ export async function getUccDetails(lat, long, userId, req) {
                 cs.ucc IN (${Prisma.join(uccIds)});
         `;
 
-
     if (result.length === 0) {
 
         return {
@@ -144,11 +143,12 @@ export async function getUccDetails(lat, long, userId, req) {
         : { message: RESPONSE_MESSAGES.SUCCESS.INSIDE_WORK_AREA, geoFenceStatus: STRING_CONSTANT.INSIDE };
 
     const uccsWithDetails = uccs.map((ucc) => {
-        const uccDistance = result.find(r => r.ucc === ucc.ucc_id)?.distance_in_meters || null;
+        const mappedData = result.find(r => r.ucc === ucc.ucc_id);
 
-        ucc["distance_in_meters"] = uccDistance;
+        ucc["distance_in_meters"] = mappedData?.distance_in_meters || null;;
         ucc.isNearest = ucc.ucc_id === nearestUcc.ucc;
         ucc['message'] = status.message;
+        ucc.project_name = mappedData?.projectname || null;
 
         return ucc;
     });
