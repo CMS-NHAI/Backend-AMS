@@ -271,7 +271,9 @@ export const checkedInEmployeesValidationSchema = Joi.object({
       'any.unknown': 'End Date cannot be provided when Filter Type is "TWO WEEKS"',
     }),
     otherwise: Joi.date().optional(),
-  })
+  }),
+
+  isOffsite: Joi.boolean().optional()
 });
 
 export const myProjectEmployeesQueryValidationSchema = Joi.object({

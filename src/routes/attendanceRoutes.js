@@ -9,6 +9,7 @@ import { fetchlocationBydate, fetchNearestProject, getBufferAroundUcc } from '..
 import { fetchProjectDetails,getProjectOverviewDetail, getProjectOverviewDetailWeb } from '../controllers/projectController.js'
 import { STRING_CONSTANT } from '../constants/stringConstant.js'
 import { markInAttendaceCountSchema,markAttendaceSchema, markOutAttendaceSchema, projectDetailsValidationSchema, checkedInEmployeesValidationSchema, myProjectEmployeesQueryValidationSchema, myProjectEmployeesParamsValidationSchema } from '../validations/attendaceValidation.js'
+import { getOffsiteEmployeesDetails } from '../controllers/pdFlowController.js'
 
 const router = express.Router()
 
@@ -34,6 +35,7 @@ router.get("/myProjectEmployees/:uccId",validateToken,
 router.get("/UserTodayAttendance",validateToken,getUserTodayAttendanceData)
 router.post("/markOfflineAttendance",validateToken,markOfflineAttendance)
 router.get("/fetchUccGeoJson",validateToken,getBufferAroundUcc);
+router.get("/offsiteEmployees", validateToken, getOffsiteEmployeesDetails);
 
 
 export default router

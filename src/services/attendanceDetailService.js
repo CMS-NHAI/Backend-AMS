@@ -2,6 +2,7 @@
   import { STATUS_CODES } from '../constants/statusCodeConstants.js'
   import { RESPONSE_MESSAGES } from '../constants/responseMessages.js'
   import APIError from '../utils/apiError.js'
+import { STRING_CONSTANT } from '../constants/stringConstant.js'
 
   export const getAttendanceService = async (userId, month, year, project_id, page = 1, limit = 10, date) => {
     if (!userId) {
@@ -15,7 +16,10 @@
         user_id: true,
         name: true,
         email: true,
-        designation: true
+        designation: true,
+        is_attendance_disabled: true,
+        attendance_disabled_date: true,
+        attendance_enabled_date: true
       }
     });
   
@@ -146,7 +150,9 @@
         updated_by: true,
         updated_at: true,
         attendance_date: true,
-        user_id: true
+        user_id: true,
+        attendance_status: true,
+        approval_status: true
       },
       orderBy: {
         attendance_date: 'desc',
@@ -224,7 +230,8 @@
         ...record,
         status,
         total_hours: calculateTotalHours(record.check_in_time, record.check_out_time),
-        project_name: projectMap[record.ucc_id] || 'Project Not Found'
+        project_name: projectMap[record.ucc_id] || 'Project Not Found',
+        remarks: `check_in_remark: ${(record.check_in_remarks || STRING_CONSTANT.NA)}, check_out_remark: ${(record.check_out_remarks || STRING_CONSTANT.NA)}`
       };
     });
   }
@@ -303,7 +310,10 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
           user_id: true,
           name: true,
           email: true,
-          designation: true
+          designation: true,
+          is_attendance_disabled: true,
+          attendance_disabled_date: true,
+          attendance_enabled_date: true
       }
   }); 
   
@@ -378,7 +388,8 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
               ...record,
               status,
               total_hours: calculateTotalHours(record.check_in_time, record.check_out_time),
-              project_name: record.ucc_id ? projectMap[record.ucc_id] || 'Project Not Found' : ''
+              project_name: record.ucc_id ? projectMap[record.ucc_id] || 'Project Not Found' : '',
+              remarks: `check_in_remark: ${(record.check_in_remarks || STRING_CONSTANT.NA)}, check_out_remark: ${(record.check_out_remarks || STRING_CONSTANT.NA)}`
           };
       });
   
@@ -400,7 +411,10 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
               user_id: employee.user_id,
               name: employee.name,
               email: employee.email,
-              designation: employee.designation
+              designation: employee.designation,
+              isAttendanceDisabled: employee.is_attendance_disabled,
+              attendanceDisabledDate: employee.attendance_disabled_date,
+              attendanceEnabledDate: employee.attendance_enabled_date
           },
           statistics,
           attendance: dateWiseAttendance

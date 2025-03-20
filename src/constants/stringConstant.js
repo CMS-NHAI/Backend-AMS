@@ -9,5 +9,11 @@ export const STRING_CONSTANT = Object.freeze({
     ALL: "all",
     QUERY: "query",
     PARAMS: "params",
-    TRUE: "true"
+    TRUE: "true",
+    EMPTY: "",
+    OFFSITE: "offsite",
+    PRESENT: "present",
+    NA: "N/A",
+    APPROVED: "Approved",
+    REJECTED: "Rejected"
 });
