@@ -15,10 +15,9 @@ import { logger } from "../utils/logger.js";
 export async function fetchCheckedInEmployees(req, userId) {
     try {
         logger.info('Fetching attendance records based on the filter.');
+        const { limit = 10, page = 1, startDate, endDate, uccId, filterType } = req.query;
         const result = await getTeamUserIds(userId, new Set());
-
         const userIds = result.userIds;
-        const { limit = 10, page = 2, startDate, endDate, uccId, filterType } = req.query;
 
         const limitInt = parseInt(limit, 10);
         const pageInt = parseInt(page, 10);
@@ -27,7 +26,7 @@ export async function fetchCheckedInEmployees(req, userId) {
         // Validate date range if provided
         const start = startDate ? new Date(startDate) : null;
         const end = endDate ? new Date(endDate) : null;
-        logger.info('Calculating the date range for filetration.');
+        logger.info('Calculating the date range for filtration.');
         const { calculatedStartDate, calculatedEndDate } = getDateRange(filterType, startDate, endDate);
 
         logger.info('Fetching user mapping data to fetch attendance.');
@@ -64,7 +63,9 @@ export async function fetchCheckedInEmployees(req, userId) {
             where: filters,
             skip: skip,
             take: limitInt,
-            include: {
+            select: {
+                attendance_status: true,
+                attendance_date: true,
                 user_master: {
                     select: {
                         name: true,
@@ -81,7 +82,9 @@ export async function fetchCheckedInEmployees(req, userId) {
             name: record.user_master.name,
             profilePicPath: record.user_master.user_profile_pic_path,
             designation: record.user_master.designation,
-            userId: record.user_id
+            userId: record.user_id,
+            attendanceStatus: record.attendance_status,
+            attendanceDate: record.attendance_date
         }));
         return {
             employeeDetails: response,
