@@ -192,20 +192,20 @@ export async function getUccsBuffer(userId, req) {
 
         const result = await prisma.$queryRaw`
             SELECT DISTINCT ON (cs.UCC) 
-                cs.ID,
-                cs.ProjectName,
+                cs."ID",
+                cs."ProjectName",
                 state,
                 public.ST_AsGeoJSON(cs.geom) AS geom_geojson,
-                cs.UCC
+                cs."UCC"
                 FROM 
-                    nhai_gis.UCCSegments cs
+                    nhai_gis."UCCSegments" cs
                 LEFT JOIN
                     tenant_nhai.ucc_master um
                 ON
                     cs.UCC = um.permanent_ucc
                 WHERE 
-                    cs.UCC IN (${Prisma.join(uccIds)})
-                ORDER BY cs.UCC, cs.ID;
+                    cs."UCC" IN (${Prisma.join(uccIds)})
+                ORDER BY cs."UCC", cs."ID";
           `;
 
         return result.map(item => ({
