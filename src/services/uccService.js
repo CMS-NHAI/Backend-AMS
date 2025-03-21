@@ -191,7 +191,7 @@ export async function getUccsBuffer(userId, req) {
         const uccIds = uccs.map(ucc => ucc.ucc_id);
 
         const result = await prisma.$queryRaw`
-            SELECT DISTINCT ON (cs.UCC) 
+            SELECT DISTINCT ON (cs."UCC") 
                 cs."ID",
                 cs."ProjectName",
                 state,
@@ -202,7 +202,7 @@ export async function getUccsBuffer(userId, req) {
                 LEFT JOIN
                     tenant_nhai.ucc_master um
                 ON
-                    cs.UCC = um.permanent_ucc
+                    cs."UCC" = um.permanent_ucc
                 WHERE 
                     cs."UCC" IN (${Prisma.join(uccIds)})
                 ORDER BY cs."UCC", cs."ID";
