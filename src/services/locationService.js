@@ -172,10 +172,10 @@ async function getGisData(uccId) {
     try {
         const result = await prisma.$queryRaw`
           SELECT 
-            ogc_fid,
-            ucc,
-            public.ST_AsGeoJSON(wkb_geometry) AS wkb_geometry  -- Convert geometry to GeoJSON
-          FROM nhai_gis.nhaicenterlines WHERE ucc = ${uccId};
+            ID,
+            UCC,
+            public.ST_AsGeoJSON(geom) AS wkb_geometry  -- Convert geometry to GeoJSON
+          FROM nhai_gis.UCCSegments WHERE UCC = ${uccId};
         `;
 
         if (result.length > 0) {
@@ -201,22 +201,22 @@ async function calculateAndAddDistance(attendanceId, attendanceDate, uccId, atte
     WITH check_in_distance AS (
         SELECT 
             a.attendance_id AS source_id,
-            r.ogc_fid AS target_id, 
+            r.ID AS target_id, 
             a.ucc_id AS source_ucc_id,
-            r.ucc AS target_ucc, 
+            r.UCC AS target_ucc, 
             a.check_in_loc AS check_in_geom,
-            r.wkb_geometry AS road_geom,
-            public.ST_Distance(a.check_in_loc, r.wkb_geometry) AS distance_in_meters,
+            r.geom AS road_geom,
+            public.ST_Distance(a.check_in_loc, r.geom) AS distance_in_meters,
             CASE 
-                WHEN public.ST_DWithin(a.check_in_loc, r.wkb_geometry, 200) THEN 'Within 200 meters'
+                WHEN public.ST_DWithin(a.check_in_loc, r.geom, 200) THEN 'Within 200 meters'
                 ELSE 'Outside 200 meters'
             END AS distance_message
         FROM 
             tenant_nhai.am_attendance a
         JOIN 
-            nhai_gis.nhaicenterlines r
+            nhai_gis.UCCSegments r
         ON 
-            a.ucc_id = r.ucc
+            a.ucc_id = r.UCC
         WHERE 
             a.check_in_loc IS NOT NULL
             AND a.attendance_date = CAST(${attendanceDate} AS DATE)
@@ -226,22 +226,22 @@ async function calculateAndAddDistance(attendanceId, attendanceDate, uccId, atte
     check_out_distance AS (
         SELECT 
             a.attendance_id AS source_id,
-            r.ogc_fid AS target_id, 
+            r.ID AS target_id, 
             a.ucc_id AS source_ucc_id,
-            r.ucc AS target_ucc, 
+            r.UCC AS target_ucc, 
             a.check_out_loc AS check_out_geom,
-            r.wkb_geometry AS road_geom,
-            public.ST_Distance(a.check_out_loc, r.wkb_geometry) AS distance_in_meters,
+            r.geom AS road_geom,
+            public.ST_Distance(a.check_out_loc, r.geom) AS distance_in_meters,
             CASE 
-                WHEN public.ST_DWithin(a.check_out_loc, r.wkb_geometry, 200) THEN 'Within 200 meters'
+                WHEN public.ST_DWithin(a.check_out_loc, r.geom, 200) THEN 'Within 200 meters'
                 ELSE 'Outside 200 meters'
             END AS distance_message
         FROM 
             tenant_nhai.am_attendance a
         JOIN 
-            nhai_gis.nhaicenterlines r
+            nhai_gis.UCCSegments r
         ON 
-            a.ucc_id = r.ucc
+            a.ucc_id = r.UCC
         WHERE 
             a.check_out_loc IS NOT NULL
             AND a.attendance_date = CAST(${attendanceDate} AS DATE)
