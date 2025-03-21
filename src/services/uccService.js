@@ -101,17 +101,17 @@ export async function getUccDetails(lat, long, userId, req) {
 
     const result = await prisma.$queryRaw`
             SELECT 
-                cs.ucc, 
-                public.ST_Distance(public.ST_SetSRID(public.ST_MakePoint(${parseFloat(lat)}, ${parseFloat(long)}), 4326), cs.wkb_geometry) AS distance_in_meters,
-                cs.projectname
+                cs.UCC, 
+                public.ST_Distance(public.ST_SetSRID(public.ST_MakePoint(${parseFloat(lat)}, ${parseFloat(long)}), 4326), cs.geom) AS distance_in_meters,
+                cs.ProjectName
             FROM 
-                nhai_gis.nhaicenterlines cs
+                nhai_gis.UCCSegments cs
             LEFT JOIN
                 tenant_nhai.ucc_master um
             ON
-                cs.ucc = um.permanent_ucc
+                cs.UCC = um.permanent_ucc
             WHERE 
-                cs.ucc IN (${Prisma.join(uccIds)});
+                cs.UCC IN (${Prisma.join(uccIds)});
         `;
 
     if (result.length === 0) {
@@ -191,21 +191,21 @@ export async function getUccsBuffer(userId, req) {
         const uccIds = uccs.map(ucc => ucc.ucc_id);
 
         const result = await prisma.$queryRaw`
-            SELECT DISTINCT ON (cs.ucc) 
-                cs.id,
-                cs.projectname,
+            SELECT DISTINCT ON (cs.UCC) 
+                cs.ID,
+                cs.ProjectName,
                 state,
-                public.ST_AsGeoJSON(cs.wkb_geometry) AS geom_geojson,
-                cs.ucc
+                public.ST_AsGeoJSON(cs.geom) AS geom_geojson,
+                cs.UCC
                 FROM 
-                    nhai_gis.nhaicenterlines cs
+                    nhai_gis.UCCSegments cs
                 LEFT JOIN
                     tenant_nhai.ucc_master um
                 ON
-                    cs.ucc = um.permanent_ucc
+                    cs.UCC = um.permanent_ucc
                 WHERE 
-                    cs.ucc IN (${Prisma.join(uccIds)})
-                ORDER BY cs.ucc, cs.id;
+                    cs.UCC IN (${Prisma.join(uccIds)})
+                ORDER BY cs.UCC, cs.ID;
           `;
 
         return result.map(item => ({
