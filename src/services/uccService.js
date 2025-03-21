@@ -109,9 +109,9 @@ export async function getUccDetails(lat, long, userId, req) {
             LEFT JOIN
                 tenant_nhai.ucc_master um
             ON
-                cs.UCC = um.permanent_ucc
+                cs."UCC" = um.permanent_ucc
             WHERE 
-                cs.UCC IN (${Prisma.join(uccIds)});
+                cs."UCC" IN (${Prisma.join(uccIds)});
         `;
 
     if (result.length === 0) {
