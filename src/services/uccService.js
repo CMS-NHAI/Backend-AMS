@@ -101,9 +101,9 @@ export async function getUccDetails(lat, long, userId, req) {
 
     const result = await prisma.$queryRaw`
             SELECT 
-                cs.UCC, 
+                cs."UCC", 
                 public.ST_Distance(public.ST_SetSRID(public.ST_MakePoint(${parseFloat(lat)}, ${parseFloat(long)}), 4326), cs.geom) AS distance_in_meters,
-                cs.ProjectName
+                cs."ProjectName"
             FROM 
                 nhai_gis."UCCSegments" cs
             LEFT JOIN
