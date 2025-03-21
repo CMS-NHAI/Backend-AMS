@@ -20,6 +20,7 @@ import { RESPONSE_MESSAGES } from '../constants/responseMessages.js';
 import { fetchCheckedInEmployees, getEmployeesByProject } from '../services/employeeService.js';
 import { getProjectAttendanceCount } from '../services/projectService.js';
 import { calculateTotalHours } from '../services/attendanceDetailService.js';
+import { STRING_CONSTANT } from '../constants/stringConstant.js';
 
 const prisma = new PrismaClient();
 /**
@@ -188,7 +189,17 @@ export const getTeamAttendanceDetails = async (req, res) => {
   const loggedInUserId = req.user.user_id;
   
     try {
- 
+      const reqDesignation = req?.user?.designation;
+      const userDesignation = await prisma.user_master.findFirst({
+        where: {
+          user_id: loggedInUserId
+        },
+        select: {
+          designation: true,
+          user_id: true
+        }
+      });
+      const isPD = (reqDesignation || STRING_CONSTANT.EMPTY).toLowerCase() == (userDesignation.designation || STRING_CONSTANT.EMPTY).toLocaleLowerCase();
       const employeesData = await getEmployeesHierarchy(loggedInUserId);
       const employeeUserIds = await getAttendanceForHierarchy(employeesData.hierarchy);
       const dateRange = calculateDateRange(month, year, date);
@@ -196,7 +207,8 @@ export const getTeamAttendanceDetails = async (req, res) => {
         employeeUserIds,
         dateRange.startDate,
         dateRange.endDate,
-        project_id
+        project_id,
+        isPD
       );
       const employeeDetails = await prisma.user_master.findMany({
         where: {
@@ -223,7 +235,8 @@ export const getTeamAttendanceDetails = async (req, res) => {
         ...employeeMap[record.user_id], // Spread employee details into the record
         status: determineStatus(record),
         total_hours: calculateTotalHours(record.check_in_time, record.check_out_time),
-        project_name: await getProjectName(record.ucc_id)
+        project_name: await getProjectName(record.ucc_id),
+        remarks: `check_in_remark: ${(record.check_in_remarks || STRING_CONSTANT.NA)}, check_out_remark: ${(record.check_out_remarks || STRING_CONSTANT.NA)}`
       })))
       
       const sortedAttendance = processedAttendance.sort((a, b) => {

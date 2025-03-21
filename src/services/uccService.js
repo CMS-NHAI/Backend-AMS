@@ -192,7 +192,7 @@ export async function getUccsBuffer(userId, req) {
 
         const result = await prisma.$queryRaw`
             SELECT DISTINCT ON (cs."UCC") 
-                cs."ID",
+                cs."ID"::integer AS "ID",
                 cs."ProjectName",
                 cs."State",
                 public.ST_AsGeoJSON(cs.geom) AS geom_geojson,
@@ -213,6 +213,7 @@ export async function getUccsBuffer(userId, req) {
             geom_geojson: JSON.parse(item.geom_geojson)
         }));;
     } catch (error) {
+        console.log("ERRRRRRRRR :::::::::: ", error);
         throw error;
     }
 }
