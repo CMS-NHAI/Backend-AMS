@@ -33,7 +33,7 @@ export const getProjectDetails = async (req, userId, date, ucc_id, isExport) => 
         });
 
         // Validate pagination parameters
-        const page = parseInt(req.query?.page) || 2;
+        const page = parseInt(req.query?.page) || 1;
         const limit = parseInt(req.query?.limit) || 10
 
         // Calculate offset for pagination
