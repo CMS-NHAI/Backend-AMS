@@ -194,7 +194,7 @@ export async function getUccsBuffer(userId, req) {
             SELECT DISTINCT ON (cs."UCC") 
                 cs."ID",
                 cs."ProjectName",
-                state,
+                cs."State",
                 public.ST_AsGeoJSON(cs.geom) AS geom_geojson,
                 cs."UCC"
                 FROM 
