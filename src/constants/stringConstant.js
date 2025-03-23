@@ -15,5 +15,9 @@ export const STRING_CONSTANT = Object.freeze({
     PRESENT: "present",
     NA: "N/A",
     APPROVED: "Approved",
-    REJECTED: "Rejected"
+    REJECTED: "Rejected",
+    APPROVE: "APPROVE",
+    REJECT: "REJECT",
+    ONE: "1",
+    INSENSITIVE: "insensitive"
 });

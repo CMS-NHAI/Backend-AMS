@@ -185,7 +185,7 @@ export const getAttendanceDetails = async (req, res) => {
 };
 
 export const getTeamAttendanceDetails = async (req, res) => {
-  const { month, year, project_id, date, exports, page = 1, limit = 500 } = req.query;
+  const { month, year, project_id, date, exports, page = 1, limit = 500, offsiteOnly } = req.query;
   const loggedInUserId = req.user.user_id;
   
     try {
@@ -208,7 +208,8 @@ export const getTeamAttendanceDetails = async (req, res) => {
         dateRange.startDate,
         dateRange.endDate,
         project_id,
-        isPD
+        isPD,
+        offsiteOnly
       );
       const employeeDetails = await prisma.user_master.findMany({
         where: {

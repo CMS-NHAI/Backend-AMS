@@ -1,6 +1,7 @@
 import { format } from "@fast-csv/format";
 import { RESPONSE_MESSAGES } from "../constants/responseMessages.js";
 import { STATUS_CODES } from "../constants/statusCodeConstants.js";
+import { STRING_CONSTANT } from "../constants/stringConstant.js";
 
 /**
  * Converts an array of objects to a CSV stream and sends it as a response.
@@ -41,4 +42,14 @@ export const exportToCSV = async (res, data,filename="users", headers = null) =>
     } catch(error) {
         console.log(error, "error")
     }
+};
+
+/**
+ * Converts a string query parameter into a boolean.
+ * 
+ * @param {string | undefined} value - The query parameter value.
+ * @returns {boolean} - Returns `true` for "true", "1", and `false` otherwise.
+ */
+export const parseBoolean = (value) => {
+    return value === STRING_CONSTANT.TRUE || value === STRING_CONSTANT.ONE;
 };
