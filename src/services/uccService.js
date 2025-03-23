@@ -208,12 +208,21 @@ export async function getUccsBuffer(userId, req) {
                 ORDER BY cs."UCC", cs."ID";
           `;
 
-        return result.map(item => ({
-            ...item,
-            geom_geojson: JSON.parse(item.geom_geojson)
-        }));;
+        return result.map(row => {
+            const geojson = JSON.parse(row.geom_geojson);
+        
+            if (geojson.type === "MultiLineString") {
+                // Flatten MultiLineString to a single LineString
+                geojson.type = "LineString";
+                geojson.coordinates = geojson.coordinates.flat(); // Merge all coordinate arrays
+            }
+        
+            return {
+                ...row,
+                geom_geojson: geojson,
+            };
+        });
     } catch (error) {
-        console.log("ERRRRRRRRR :::::::::: ", error);
         throw error;
     }
 }

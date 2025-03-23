@@ -229,11 +229,10 @@ export const getTeamAttendanceDetails = async (req, res) => {
       }, {});
   
       // Process attendance records
-      
       const processedAttendance = await Promise.all(attendanceRecords.map(async(record) => ({
         ...record,
         ...employeeMap[record.user_id], // Spread employee details into the record
-        status: determineStatus(record),
+        status: await determineStatus(record),
         total_hours: calculateTotalHours(record.check_in_time, record.check_out_time),
         project_name: await getProjectName(record.ucc_id),
         remarks: `check_in_remark: ${(record.check_in_remarks || STRING_CONSTANT.NA)}, check_out_remark: ${(record.check_out_remarks || STRING_CONSTANT.NA)}`
@@ -314,11 +313,15 @@ async function checkTotalHoliday() {
     return result ? result : {};
 }
 
-export const determineStatus = (record) => {
+export const determineStatus = async (record) => {
   
   // compare holiday date start
-  const isHoliday = checkTotalHoliday();
-  if(isHoliday.holiday_date === record.date) return 'Holiday'
+  const isHoliday = await checkTotalHoliday();
+  if (Array.isArray(isHoliday) && isHoliday.some(holiday => 
+    holiday.holiday_Date?.toISOString().slice(0, 10) === record?.attendance_date?.toISOString().slice(0, 10)
+  )) {
+    return 'Holiday';
+  }
   // compare holiday date end
 
   if (!record.check_in_time) return 'Absent';
