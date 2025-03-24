@@ -113,7 +113,6 @@ export async function getUccDetails(lat, long, userId, req) {
             WHERE 
                 cs."UCC" IN (${Prisma.join(uccIds)});
         `;
-    console.log('result ', result);
     if (result.length === 0) {
 
         return {
@@ -144,7 +143,6 @@ export async function getUccDetails(lat, long, userId, req) {
 
     const uccsWithDetails = uccs.map((ucc) => {
         const mappedData = result.find(r => r.UCC === ucc.ucc_id);
-        console.log('mapped Data ', mappedData);
         ucc["distance_in_meters"] = mappedData?.distance_in_meters || null;;
         ucc.isNearest = ucc.ucc_id === nearestUcc.ucc;
         ucc['message'] = status.message;
