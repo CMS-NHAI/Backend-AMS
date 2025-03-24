@@ -451,11 +451,6 @@ export const getTeamAttendanceCount = async(req,res)=>{
     }
     res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({success:false, message: error.message })
   }
-
-
-
-
-
 }
 
 
@@ -469,6 +464,16 @@ export const markAttendance = async (req, res) => {
     const attendanceDataArray = req.body.attendanceData; // Assuming attendanceData is an array of objects
     if (!Array.isArray(attendanceDataArray) || attendanceDataArray.length === 0) {
       throw new APIError(STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.INVALID_ATTENDANCE_DATA);
+    }
+
+    // Attendance enable/disable logic
+    const userData = await checkAttendanceIsAllowedOrNot(userId);
+
+    if(userData.is_attendance_disabled) {
+      return res.status(STATUS_CODES.UNAUTHORIZED).json({
+        success: true,
+        message: `Your not allowed to mark-in your attendance as it is disabled on ${userData.attendance_disabled_date}.`
+      });
     }
 
     const processedData = [];
@@ -533,6 +538,17 @@ export const markOutAttendance=async (req,res)=>{
     if(!userId){
       throw new APIError(STATUS_CODES.UNAUTHORIZED, RESPONSE_MESSAGES.ERROR.USER_ID_MISSING)
     }
+
+    // Attendance enable/disable logic
+    const userData = await checkAttendanceIsAllowedOrNot(userId);
+
+    if(userData.is_attendance_disabled) {
+      return res.status(STATUS_CODES.UNAUTHORIZED).json({
+        success: true,
+        message: `Your not allowed to mark-out your attendance as it is disabled on ${userData.attendance_disabled_date}.`
+      });
+    }
+
     const attendaces = req.body.attendanceData
     for(const data of attendaces){
       // console.log(data,"data")
@@ -805,4 +821,19 @@ export const markOfflineAttendance = async (req, res) => {
       });
     }
   }
+}
+
+async function checkAttendanceIsAllowedOrNot(userId) {
+  // Attendance enable/disable logic
+  const userData = await prisma.user_master.findUnique({
+    where: {
+      user_id: userId
+    },
+    select: {
+      is_attendance_disabled: true,
+      attendance_disabled_date: true
+    }
+  });
+
+  return userData;
 }
