@@ -143,7 +143,7 @@ export async function getUccDetails(lat, long, userId, req) {
         : { message: RESPONSE_MESSAGES.SUCCESS.INSIDE_WORK_AREA, geoFenceStatus: STRING_CONSTANT.INSIDE };
 
     const uccsWithDetails = uccs.map((ucc) => {
-        const mappedData = result.find(r => r.ucc === ucc.ucc_id);
+        const mappedData = result.find(r => r.UCC === ucc.ucc_id);
         console.log('mapped Data ', mappedData);
         ucc["distance_in_meters"] = mappedData?.distance_in_meters || null;;
         ucc.isNearest = ucc.ucc_id === nearestUcc.ucc;
