@@ -31,8 +31,9 @@ export async function enableDisableEmployeeAttendance(req, res) {
     try {
         const { userId } = req.params;
         const { enabled } = req.body;
-        const user = await updateEmployeeAttendanceStatus(userId, enabled);
-        return res.json({success: true, message: `User attendance ${enabled ? "enabled" : "disabled"} successfully`, user });
+        const adminId = req?.user?.user_id;
+        const data = await updateEmployeeAttendanceStatus(userId, enabled, adminId);
+        return res.json(data);
 
     } catch (error) {
         await errorResponse(req, res, error);

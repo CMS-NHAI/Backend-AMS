@@ -199,7 +199,7 @@ export const getTeamAttendanceDetails = async (req, res) => {
           user_id: true
         }
       });
-      const isPD = (reqDesignation || STRING_CONSTANT.EMPTY).toLowerCase() == (userDesignation.designation || STRING_CONSTANT.EMPTY).toLocaleLowerCase();
+      const isPD = (reqDesignation || STRING_CONSTANT.EMPTY).toLowerCase() == (userDesignation?.designation || STRING_CONSTANT.EMPTY).toLocaleLowerCase();
       const employeesData = await getEmployeesHierarchy(loggedInUserId);
       const employeeUserIds = await getAttendanceForHierarchy(employeesData.hierarchy);
       const dateRange = calculateDateRange(month, year, date);
