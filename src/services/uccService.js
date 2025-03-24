@@ -144,11 +144,11 @@ export async function getUccDetails(lat, long, userId, req) {
 
     const uccsWithDetails = uccs.map((ucc) => {
         const mappedData = result.find(r => r.ucc === ucc.ucc_id);
-
+        console.log('mapped Data ', mappedData);
         ucc["distance_in_meters"] = mappedData?.distance_in_meters || null;;
         ucc.isNearest = ucc.ucc_id === nearestUcc.ucc;
         ucc['message'] = status.message;
-        ucc.project_name = mappedData?.projectname || null;
+        ucc.project_name = mappedData?.ProjectName || null;
 
         return ucc;
     });
