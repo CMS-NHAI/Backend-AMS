@@ -148,7 +148,7 @@ export async function getUccDetails(lat, long, userId, req) {
         ucc["distance_in_meters"] = mappedData?.distance_in_meters || null;;
         ucc.isNearest = ucc.ucc_id === nearestUcc.ucc;
         ucc['message'] = status.message;
-        ucc.project_name = mappedData?.projectname || null;
+        ucc.project_name = mappedData?.ProjectName || null;
 
         return ucc;
     });

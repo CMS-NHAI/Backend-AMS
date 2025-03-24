@@ -35,21 +35,63 @@ export async function updateAttendanceStatus(attendanceId, action, userId) {
     }
 }
 
-export async function updateEmployeeAttendanceStatus(userId, enabled) {
+/**
+ * Enables or disables attendance for a given user and logs the change.
+ * 
+ * @param {number} userId - ID of the user whose attendance status is being updated.
+ * @param {boolean} enabled - `true` to enable, `false` to disable attendance.
+ * @param {number} adminId - ID of the admin making the change.
+ */
+export async function updateEmployeeAttendanceStatus(userId, enabled, adminId) {
     try {
-        if (enabled) {
-            return await prisma.user_master.update({
-                where: { user_id: parseInt(userId) },
-                data: { is_attendance_disabled: false, attendance_enabled_date: new Date() },
-            });
+        const userData = await prisma.user_master.findUnique({
+            where: { user_id: parseInt(userId) },
+            select: { is_attendance_disabled: true }
+        });
+
+        if (!userData) {
+            throw new APIError(STATUS_CODES.NOT_FOUND, RESPONSE_MESSAGES.ERROR.USER_NOT_FOUND);
         }
 
-        if (!enabled) {
-            return await prisma.user_master.update({
-                where: { user_id: parseInt(userId) },
-                data: { is_attendance_disabled: true, attendance_disabled_date: new Date() },
-            });
+        // If the status is already the same, return a response
+        if (userData.is_attendance_disabled === !enabled) {
+            return {
+                success: false,
+                message: `Attendance is already ${enabled ? "enabled" : "disabled"}.`
+            };
         }
+
+        // Prepare log data
+        const timestamp = new Date();
+        const oldValue = userData.is_attendance_disabled.toString();
+        const newValue = (!enabled).toString(); // Flip `enabled` since DB stores `is_attendance_disabled`
+
+        // Update the `user_master` table
+        await prisma.user_master.update({
+            where: { user_id: parseInt(userId) },
+            data: {
+                is_attendance_disabled: !enabled,
+                attendance_enabled_date: enabled ? timestamp : null,
+                attendance_disabled_date: !enabled ? timestamp : null
+            }
+        });
+
+        await prisma.user_change_log.create({
+            data: {
+                user_id: parseInt(userId),
+                change_field: "is_attendance_disabled",
+                old_value: oldValue,
+                new_value: newValue,
+                created_by: adminId,
+                created_at: timestamp,
+                updated_at: timestamp
+            }
+        });
+
+        return {
+            success: true,
+            message: `Attendance successfully ${enabled ? "enabled" : "disabled"}.`
+        };
     } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === PRISMA_ERROR_CODES.P2025) {
             throw new APIError(STATUS_CODES.NOT_FOUND, RESPONSE_MESSAGES.ERROR.USER_NOT_FOUND);
