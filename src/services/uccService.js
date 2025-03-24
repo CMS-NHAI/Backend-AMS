@@ -101,17 +101,17 @@ export async function getUccDetails(lat, long, userId, req) {
 
     const result = await prisma.$queryRaw`
             SELECT 
-                cs.UCC, 
+                cs."UCC", 
                 public.ST_Distance(public.ST_SetSRID(public.ST_MakePoint(${parseFloat(lat)}, ${parseFloat(long)}), 4326), cs.geom) AS distance_in_meters,
-                cs.ProjectName
+                cs."ProjectName"
             FROM 
-                nhai_gis.UCCSegments cs
+                nhai_gis."UCCSegments" cs
             LEFT JOIN
                 tenant_nhai.ucc_master um
             ON
-                cs.UCC = um.permanent_ucc
+                cs."UCC" = um.permanent_ucc
             WHERE 
-                cs.UCC IN (${Prisma.join(uccIds)});
+                cs."UCC" IN (${Prisma.join(uccIds)});
         `;
 
     if (result.length === 0) {
@@ -191,27 +191,37 @@ export async function getUccsBuffer(userId, req) {
         const uccIds = uccs.map(ucc => ucc.ucc_id);
 
         const result = await prisma.$queryRaw`
-            SELECT DISTINCT ON (cs.UCC) 
-                cs.ID,
-                cs.ProjectName,
-                state,
+            SELECT DISTINCT ON (cs."UCC") 
+                cs."ID"::integer AS "ID",
+                cs."ProjectName",
+                cs."State",
                 public.ST_AsGeoJSON(cs.geom) AS geom_geojson,
-                cs.UCC
+                cs."UCC"
                 FROM 
-                    nhai_gis.UCCSegments cs
+                    nhai_gis."UCCSegments" cs
                 LEFT JOIN
                     tenant_nhai.ucc_master um
                 ON
-                    cs.UCC = um.permanent_ucc
+                    cs."UCC" = um.permanent_ucc
                 WHERE 
-                    cs.UCC IN (${Prisma.join(uccIds)})
-                ORDER BY cs.UCC, cs.ID;
+                    cs."UCC" IN (${Prisma.join(uccIds)})
+                ORDER BY cs."UCC", cs."ID";
           `;
 
-        return result.map(item => ({
-            ...item,
-            geom_geojson: JSON.parse(item.geom_geojson)
-        }));;
+        return result.map(row => {
+            const geojson = JSON.parse(row.geom_geojson);
+        
+            if (geojson.type === "MultiLineString") {
+                // Flatten MultiLineString to a single LineString
+                geojson.type = "LineString";
+                geojson.coordinates = geojson.coordinates.flat(); // Merge all coordinate arrays
+            }
+        
+            return {
+                ...row,
+                geom_geojson: geojson,
+            };
+        });
     } catch (error) {
         throw error;
     }

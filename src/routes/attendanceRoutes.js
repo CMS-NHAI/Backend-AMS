@@ -1,15 +1,16 @@
 import express from 'express'
 // import { getUserDetails } from "../services/userService";
 
-import { getAttendanceOverview , getAttendanceDetails, getTeamAttendanceDetails, getAllProjects,getTeamAttendanceCount,markAttendance,markOutAttendance, checkedInEmployees,getUserTodayAttendanceData, fetchEmployeesByProject,markOfflineAttendance} from '../controllers/attendanceController.js'
-import {validate} from '../middlewares/validate.js'
-import { validateToken } from '../middlewares/validateToken.js'
+import { checkedInEmployees, fetchEmployeesByProject, getAllProjects, getAttendanceDetails, getAttendanceOverview, getTeamAttendanceCount, getTeamAttendanceDetails, getUserTodayAttendanceData, markAttendance, markOfflineAttendance, markOutAttendance } from '../controllers/attendanceController.js'
 import { fetchlocationBydate, fetchNearestProject, getBufferAroundUcc } from '../controllers/locationController.js'
+import { validate } from '../middlewares/validate.js'
+import { validateToken } from '../middlewares/validateToken.js'
 
-import { fetchProjectDetails,getProjectOverviewDetail, getProjectOverviewDetailWeb } from '../controllers/projectController.js'
 import { STRING_CONSTANT } from '../constants/stringConstant.js'
-import { markInAttendaceCountSchema,markAttendaceSchema, markOutAttendaceSchema, projectDetailsValidationSchema, checkedInEmployeesValidationSchema, myProjectEmployeesQueryValidationSchema, myProjectEmployeesParamsValidationSchema } from '../validations/attendaceValidation.js'
-import { getOffsiteEmployeesDetails } from '../controllers/pdFlowController.js'
+import { enableDisableEmployeeAttendance, insertAttendanceStatus } from '../controllers/pdFlowController.js'
+import { fetchProjectDetails, getProjectOverviewDetail, getProjectOverviewDetailWeb } from '../controllers/projectController.js'
+import { checkedInEmployeesValidationSchema, markAttendaceSchema, markInAttendaceCountSchema, markOutAttendaceSchema, myProjectEmployeesParamsValidationSchema, myProjectEmployeesQueryValidationSchema, projectDetailsValidationSchema } from '../validations/attendaceValidation.js'
+import { isPD } from '../middlewares/authMiddleware.js'
 
 const router = express.Router()
 
@@ -35,7 +36,8 @@ router.get("/myProjectEmployees/:uccId",validateToken,
 router.get("/UserTodayAttendance",validateToken,getUserTodayAttendanceData)
 router.post("/markOfflineAttendance",validateToken,markOfflineAttendance)
 router.get("/fetchUccGeoJson",validateToken,getBufferAroundUcc);
-router.get("/offsiteEmployees", validateToken, getOffsiteEmployeesDetails);
+router.patch("/updateAttendanceStatus/:attendanceId", validateToken, isPD, insertAttendanceStatus);
+router.patch("/enableDisableEmployeeAttendance/:userId", validateToken, isPD, enableDisableEmployeeAttendance);
 
 
 export default router

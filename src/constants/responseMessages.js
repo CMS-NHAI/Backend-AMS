@@ -1,6 +1,7 @@
 export const RESPONSE_MESSAGES = {
   AUTH: {
     UNAUTHORIZED: "You are not authorized to access this resource.",
+    ONLY_PD: "Access Denied: Only PD can perform this action"
   },
 
   ERROR: {
@@ -36,6 +37,11 @@ export const RESPONSE_MESSAGES = {
     ATTENDANCE_ALREADY_MARKED:"Attendance Is Already Marked or Record not found",
     CHECKOUT_TIME_SHOULD_BE_AFTER_CHECKIN:"Check-out time should be after check-in time",
     CHECKOUT_TIME_SHOULD_BE_LESS_THAN_24_HOURS:"Check-out time should be less than 24 hours",
+    INVALID_ACTION: "Invalid action provided",
+    NO_USER_ID: "Unauthorized: No user ID found",
+    FORBIDDEN: "Access Denied: User not found",
+    ATTENDANCE_RECORD_NOT_FOUND: "Attendance record not found to update the attendance status",
+    USER_NOT_FOUND: "User not found to Enable/Disable attendance"
     
   },
   SUCCESS: {

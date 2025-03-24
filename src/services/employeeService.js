@@ -108,7 +108,7 @@ export async function fetchCheckedInEmployees(req, userId) {
  * @param {string} endDate - Custom end date (if filterType is 'Custom')
  * @returns {Object} - Contains calculated start and end dates.
  */
-function getDateRange(filterType, startDate, endDate) {
+export function getDateRange(filterType, startDate, endDate) {
     const today = new Date();
     let calculatedStartDate, calculatedEndDate;
 
@@ -141,7 +141,8 @@ function getDateRange(filterType, startDate, endDate) {
             break;
 
         default:
-            throw new Error('Invalid filter type');
+            calculatedStartDate = today;
+            calculatedEndDate = today;
     }
 
     return { calculatedStartDate, calculatedEndDate };

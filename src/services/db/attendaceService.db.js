@@ -6,6 +6,7 @@ import APIError from '../../utils/apiError.js';
 import { holidayList, isSunday } from "../../helpers/helpers.js";
 import { getGeoFenceStatus } from "../attendanceService.js";
 import { STRING_CONSTANT } from '../../constants/stringConstant.js';
+import { parseBoolean } from '../../utils/attendaceUtils.js';
 
 
 export const getUserAttendance = async (userId, startDate, endDate,id) => {
@@ -20,8 +21,8 @@ export const getUserAttendance = async (userId, startDate, endDate,id) => {
   })
 }
 
-export const getTeamAttendance = async (employeeUserIds, startDate, endDate, project_id) => {
-  
+export const getTeamAttendance = async (employeeUserIds, startDate, endDate, project_id, isPD, offsiteOnly) => {
+  const parsedOffsiteOnly = parseBoolean(offsiteOnly);
   return await prisma.am_attendance.findMany({
     where: {
       user_id: {
@@ -31,7 +32,14 @@ export const getTeamAttendance = async (employeeUserIds, startDate, endDate, pro
         gte: startDate,
         lte: endDate
       },
-      ...(project_id && { ucc_id: project_id })
+      ...(project_id && { ucc_id: project_id }),
+       // Apply this condition ONLY if isPD and offsiteOnly are both true
+      ...(isPD && parsedOffsiteOnly ? {
+        OR: [
+          { check_in_geofence_status: { equals: STRING_CONSTANT.OUTSIDE, mode: STRING_CONSTANT.INSENSITIVE } },
+          { check_out_geofence_status: { equals: STRING_CONSTANT.OUTSIDE, mode: STRING_CONSTANT.INSENSITIVE } }
+        ]
+      } : {}),
     },
     select: {
       attendance_id: true,
@@ -59,8 +67,8 @@ export const getTeamAttendance = async (employeeUserIds, startDate, endDate, pro
         attendance_date: true,
         user_id: true,
         attendance_status: true,
-        approval_status: true,
-        approval_date: true
+        ...(isPD && {approval_status: true}),
+        ...(isPD && {approval_date: true})
     },
     orderBy: {
       attendance_date: 'desc'

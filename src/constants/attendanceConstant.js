@@ -16,3 +16,7 @@ export const ATTENDANCE_STATUS = {
   // ABSENT: "ABSENT",
   // ON_LEAVE: "ON_LEAVE"
 }
+
+export const PRISMA_ERROR_CODES = Object.freeze({
+  P2025: "P2025"
+})
