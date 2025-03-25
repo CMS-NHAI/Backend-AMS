@@ -28,7 +28,6 @@ export async function updateAttendanceStatus(attendanceId, action, userId) {
 
         throw new APIError(STATUS_CODES.BAD_REQUEST, RESPONSE_MESSAGES.ERROR.INVALID_ACTION);
     } catch (error) {
-        console.log("ERRRRRRRRRRRR ::::::::: ", error)
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === PRISMA_ERROR_CODES.P2025) {
             throw new APIError(STATUS_CODES.NOT_FOUND, RESPONSE_MESSAGES.ERROR.ATTENDANCE_RECORD_NOT_FOUND);
         }
