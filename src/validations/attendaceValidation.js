@@ -278,7 +278,8 @@ export const checkedInEmployeesValidationSchema = Joi.object({
 
 export const myProjectEmployeesQueryValidationSchema = Joi.object({
   limit,
-  page
+  page,
+  offsiteOnly: Joi.boolean().optional()
 });
 
 export const myProjectEmployeesParamsValidationSchema = Joi.object({
