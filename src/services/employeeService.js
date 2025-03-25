@@ -246,7 +246,9 @@ export async function getEmployeesByProject(req, userId) {
                 attendance_date: true,
                 approval_status: true,
                 approval_date: true,
-                attendance_status: true
+                attendance_status: true,
+                attendance_date: true,
+                attendance_id: true
             }
         });
 
