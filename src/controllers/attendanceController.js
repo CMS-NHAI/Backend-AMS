@@ -21,6 +21,7 @@ import { fetchCheckedInEmployees, getEmployeesByProject } from '../services/empl
 import { getProjectAttendanceCount } from '../services/projectService.js';
 import { calculateTotalHours } from '../services/attendanceDetailService.js';
 import { STRING_CONSTANT } from '../constants/stringConstant.js';
+import { errorResponse } from '../helpers/errorHelper.js';
 
 const prisma = new PrismaClient();
 /**
@@ -666,18 +667,7 @@ export const fetchEmployeesByProject = async (req, res) => {
       data
     });
   } catch (error) {
-    console.log("Employees by project :: ", error);
-    if (error instanceof APIError) {
-      res.status(error.statusCode).json({
-        success: false,
-        message: error,
-        data: result
-      });
-    }
-    res.status(STATUS_CODES.INTERNAL_SERVER_ERROR).json({
-      status: false,
-      message: error.message
-    });
+    errorResponse(req, res, error);
   }
 }
 
