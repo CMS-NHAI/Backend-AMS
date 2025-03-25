@@ -26,14 +26,24 @@ export const isPD = async (req, res, next) => {
         }
 
         const user = await prisma.user_master.findUnique({
-            where: { user_id: loggedInUserId },
+            where: {
+                AND: [
+                    { user_id: loggedInUserId },
+                    {
+                        designation: {
+                            equals: STRING_CONSTANT.PD,
+                            mode: STRING_CONSTANT.INSENSITIVE
+                        }
+                    }
+                ]
+            },
             select: { designation: true }
         });
 
         if (!user) {
             return res.status(STATUS_CODES.FORBIDDEN).json({ success: false, message: RESPONSE_MESSAGES.ERROR.FORBIDDEN });
         }
-        
+
         // Check if designation is "PD"
         const isPD = (user.designation || STRING_CONSTANT.NA).toLowerCase() === (req?.user?.designation || STRING_CONSTANT.EMPTY).toLowerCase();
 
