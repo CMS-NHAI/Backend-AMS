@@ -111,7 +111,7 @@ export const getLocationDetails = async (req, res) => {
  * @returns Team members attendance location 
  */
 const getAttendanceLocationForTeam = async (parentId, date, uccNo) => {
-    const parentIdCheckValue = await prisma.user_master.findUnique({
+    const parentIdCheckValue = await prisma.user_master.findFirst({
         where: {
             user_id: parentId
         }

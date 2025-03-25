@@ -152,7 +152,8 @@ import { STRING_CONSTANT } from '../constants/stringConstant.js'
         attendance_date: true,
         user_id: true,
         attendance_status: true,
-        approval_status: true
+        approval_status: true,
+        approval_date: true
       },
       orderBy: {
         attendance_date: 'desc',

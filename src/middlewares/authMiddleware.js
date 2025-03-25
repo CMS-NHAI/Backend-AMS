@@ -25,7 +25,7 @@ export const isPD = async (req, res, next) => {
             return res.status(STATUS_CODES.UNAUTHORIZED).json({ success: false, message: RESPONSE_MESSAGES.ERROR.NO_USER_ID });
         }
 
-        const user = await prisma.user_master.findUnique({
+        const user = await prisma.user_master.findFirst({
             where: {
                 AND: [
                     { user_id: loggedInUserId },

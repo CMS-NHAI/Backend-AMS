@@ -855,7 +855,7 @@ export const markOfflineAttendance = async (req, res) => {
 
 async function checkAttendanceIsAllowedOrNot(userId) {
   // Attendance enable/disable logic
-  const userData = await prisma.user_master.findUnique({
+  const userData = await prisma.user_master.findFirst({
     where: {
       user_id: userId
     },
