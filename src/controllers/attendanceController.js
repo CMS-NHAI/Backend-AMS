@@ -338,14 +338,14 @@ export const determineStatus = async (record) => {
 };
 
 export const getProjectName = async (ucc_id) => {
-  if (!ucc_id) return 'Project Not Found';
+  if (!ucc_id) return '';
   
   const project = await prisma.ucc_master.findFirst({
     where: { id: ucc_id },
     select: { project_name: true }
   });
   
-  return project?.project_name || 'Project Not Found';
+  return project?.project_name ||  '' ;
 };
 
 export const getAllProjects = async (req, res) => {

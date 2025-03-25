@@ -231,7 +231,7 @@ import { STRING_CONSTANT } from '../constants/stringConstant.js'
         ...record,
         status,
         total_hours: calculateTotalHours(record.check_in_time, record.check_out_time),
-        project_name: projectMap[record.ucc_id] || 'Project Not Found',
+        project_name: projectMap[record.ucc_id] || '',
         remarks: `check_in_remark: ${(record.check_in_remarks || STRING_CONSTANT.NA)}, check_out_remark: ${(record.check_out_remarks || STRING_CONSTANT.NA)}`
       };
     });
@@ -389,7 +389,7 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
               ...record,
               status,
               total_hours: calculateTotalHours(record.check_in_time, record.check_out_time),
-              project_name: record.ucc_id ? projectMap[record.ucc_id] || 'Project Not Found' : '',
+              project_name: record.ucc_id ? projectMap[record.ucc_id] || '' : '',
               remarks: `check_in_remark: ${(record.check_in_remarks || STRING_CONSTANT.NA)}, check_out_remark: ${(record.check_out_remarks || STRING_CONSTANT.NA)}`
           };
       });
