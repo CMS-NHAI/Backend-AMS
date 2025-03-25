@@ -4,6 +4,7 @@
 import { prisma } from "../config/prismaClient.js";
 import { STRING_CONSTANT } from "../constants/stringConstant.js";
 import { getTeamUserIds } from "../helpers/attendanceHelper.js";
+import { parseBoolean } from "../utils/attendaceUtils.js";
 import { logger } from "../utils/logger.js";
 
 /**
@@ -181,8 +182,9 @@ export async function getEmployeesByProject(req, userId) {
         logger.info('Team user ids fetched successfully.');
 
         const userIds = result.userIds;
-        const { limit = 10, page = 1 } = req.query;
+        const { limit = 10, page = 1, offsiteOnly = false } = req.query;
         const uccId = req.params.uccId;
+        const parsedOffsiteOnly = parseBoolean(offsiteOnly);
 
         const limitInt = parseInt(limit, 10);
         const pageInt = parseInt(page, 10);
@@ -226,7 +228,14 @@ export async function getEmployeesByProject(req, userId) {
         const attendanceRecords = await prisma.am_attendance.findMany({
             where: {
                 user_id: { in: uniqueUserIds },
-                attendance_date: today
+                attendance_date: today,
+                // Apply this condition ONLY if isPD and offsiteOnly are both true
+                ...(parsedOffsiteOnly ? {
+                    OR: [
+                        { check_in_geofence_status: { equals: STRING_CONSTANT.OUTSIDE, mode: STRING_CONSTANT.INSENSITIVE } },
+                        { check_out_geofence_status: { equals: STRING_CONSTANT.OUTSIDE, mode: STRING_CONSTANT.INSENSITIVE } }
+                    ]
+                } : {})
             },
             select: {
                 user_id: true,
