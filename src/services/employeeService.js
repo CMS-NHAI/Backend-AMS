@@ -4,6 +4,7 @@
 import { prisma } from "../config/prismaClient.js";
 import { STRING_CONSTANT } from "../constants/stringConstant.js";
 import { getTeamUserIds } from "../helpers/attendanceHelper.js";
+import { parseBoolean } from "../utils/attendaceUtils.js";
 import { logger } from "../utils/logger.js";
 
 /**
@@ -181,8 +182,9 @@ export async function getEmployeesByProject(req, userId) {
         logger.info('Team user ids fetched successfully.');
 
         const userIds = result.userIds;
-        const { limit = 10, page = 2 } = req.query;
+        const { limit = 10, page = 1, offsiteOnly = false } = req.query;
         const uccId = req.params.uccId;
+        const parsedOffsiteOnly = parseBoolean(offsiteOnly);
 
         const limitInt = parseInt(limit, 10);
         const pageInt = parseInt(page, 10);
@@ -215,17 +217,89 @@ export async function getEmployeesByProject(req, userId) {
                 user_id: true,
                 name: true,
                 designation: true,
-                user_profile_pic_path: true
+                user_profile_pic_path: true,
+                is_attendance_disabled: true,
+                attendance_disabled_date: true,
+                attendance_enabled_date: true
             }
         });
 
-        logger.info('User records fetched successfully.');
+        const today = new Date();
+        const attendanceRecords = await prisma.am_attendance.findMany({
+            where: {
+                user_id: { in: uniqueUserIds },
+                attendance_date: today,
+                // Apply this condition ONLY if isPD and offsiteOnly are both true
+                ...(parsedOffsiteOnly ? {
+                    OR: [
+                        { check_in_geofence_status: { equals: STRING_CONSTANT.OUTSIDE, mode: STRING_CONSTANT.INSENSITIVE } },
+                        { check_out_geofence_status: { equals: STRING_CONSTANT.OUTSIDE, mode: STRING_CONSTANT.INSENSITIVE } }
+                    ]
+                } : {})
+            },
+            select: {
+                user_id: true,
+                check_in_time: true,
+                check_out_time: true,
+                check_in_geofence_status: true,
+                check_out_geofence_status: true,
+                attendance_date: true,
+                approval_status: true,
+                approval_date: true,
+                attendance_status: true
+            }
+        });
+
+        // Map attendance records to employees
+        const attendanceMap = new Map();
+        attendanceRecords.forEach(record => {
+            const checkIn = record.check_in_time ? new Date(record.check_in_time) : null;
+            const checkOut = record.check_out_time ? new Date(record.check_out_time) : null;
+            let status = "Absent";
+
+            // Determine status
+            if (
+                record.check_in_geofence_status === STRING_CONSTANT.OUTSIDE ||
+                record.check_out_geofence_status === STRING_CONSTANT.OUTSIDE
+            ) {
+                status = "Offsite Present";
+            } else if (record.check_in_time) {
+                status = "Present";
+            }
+
+            // Create attendance entry
+            const attendanceEntry = {
+                check_in_time: checkIn,
+                check_out_time: checkOut,
+                totalHours: checkIn && checkOut ? (checkOut - checkIn) / (1000 * 60 * 60) : 0, // Convert ms to hours
+                status,
+                approval_status: record.approval_status,
+                approval_date: record.approval_date,
+                attendance_status: record.attendance_status
+            };
+
+            // If user already has records, append; otherwise, create new array
+            if (!attendanceMap.has(record.user_id)) {
+                attendanceMap.set(record.user_id, [attendanceEntry]);
+            } else {
+                attendanceMap.get(record.user_id).push(attendanceEntry);
+            }
+        });
+
+        // Merge employee details with attendance data
+        const employeeDataWithAttendance = employeeDetails.map(emp => ({
+            ...emp,
+            attendance: attendanceMap.get(emp.user_id) || [] // If no attendance, return null
+        }));
+
+        logger.info('User records and attendance data fetched successfully.');
+
         return {
-            employeeDetails,
+            employeeDetails: employeeDataWithAttendance,
             paginationDetails: {
                 limit,
                 page,
-                totalrecords: employeeDetails.length
+                totalrecords: employeeDataWithAttendance.length
             }
         };
     } catch (err) {

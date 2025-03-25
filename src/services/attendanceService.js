@@ -180,7 +180,7 @@ export const getUserAttendanceAndProjectDetailsService=async(userId)=>{
 
 export const getGeoFenceStatus =async (ucc,lat,long) =>{
 return await prisma.$queryRaw`SELECT 
-ogc_fid, 
+"ID", 
 cs."UCC", 
 public.ST_Distance(
     public.ST_SetSRID(public.ST_MakePoint(${lat}, ${long}), 4326), 
@@ -190,6 +190,6 @@ FROM
 nhai_gis."UCCSegments" cs
 
 WHERE 
-cs.UCC=${ucc};
+cs."UCC"=${ucc};
 `
 }

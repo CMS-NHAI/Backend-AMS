@@ -44,7 +44,7 @@ export async function updateAttendanceStatus(attendanceId, action, userId) {
  */
 export async function updateEmployeeAttendanceStatus(userId, enabled, adminId) {
     try {
-        const userData = await prisma.user_master.findUnique({
+        const userData = await prisma.user_master.findFirst({
             where: { user_id: parseInt(userId) },
             select: { is_attendance_disabled: true }
         });
