@@ -728,6 +728,11 @@ export const markOfflineAttendance = async (req, res) => {
     }
 
     const processedData = [];
+    // Fetch all enable/disable records from `user_change_log`
+    const attendanceLogs = await prisma.user_change_log.findMany({
+      where: { user_id: userId, change_field: STRING_CONSTANT.ATTENDANCE_DISABLED },
+      orderBy: { created_at: STRING_CONSTANT.ASC },
+    });
 
     for (const attendanceData of attendanceDataArray) {
       const { ucc, faceauthstatus, checkinTime, checkinLat, 
@@ -788,6 +793,41 @@ export const markOfflineAttendance = async (req, res) => {
         updated_at: new Date()
       };
 
+      const attendanceDate = checkinDateTime.toISOString().split("T")[0];
+
+      let lastState = STRING_CONSTANT.ENABLED;
+      let lastChangeDate = null;
+
+      // Check last known enable/disable state before the attendance date
+      for (const log of attendanceLogs) {
+        const logDate = new Date(log.created_at).toISOString().split("T")[0];
+
+        if (logDate > attendanceDate) break; // Stop checking if log is after attendance date
+
+        lastState = log.new_value === STRING_CONSTANT.TRUE ? STRING_CONSTANT.DISABLED : STRING_CONSTANT.ENABLED;
+        lastChangeDate = logDate;
+      }
+
+      // Block attendance if it was disabled
+      if (lastState === STRING_CONSTANT.DISABLED) {
+        processedData.push({
+          success: false,
+          message: `You cannot mark attendance for ${attendanceDate} as it was disabled on ${lastChangeDate}.`,
+          attendanceDate,
+        });
+        continue;
+      }
+
+      // Handle alternate-day restriction using logs
+      if (await isAlternateDayBlocked(userId, attendanceDate, attendanceLogs)) {
+        processedData.push({
+          success: false,
+          message: `You cannot mark attendance on ${attendanceDate} due to alternate-day restrictions.`,
+          attendanceDate,
+        });
+        continue;
+      }
+
       const attendaceDetails = await saveOfflineAttendance(markInOfflineAttendancedata);
       processedData.push({
         checkinTime,
@@ -837,3 +877,30 @@ async function checkAttendanceIsAllowedOrNot(userId) {
 
   return userData;
 }
+
+const isAlternateDayBlocked = async (userId, attendanceDate, attendanceLogs) => {
+  let lastEnabledDate = null;
+
+  // Find the most recent enabled date before the given attendance date
+  for (const log of attendanceLogs) {
+    const logDate = new Date(log.created_at).toISOString().split("T")[0];
+
+    if (logDate > attendanceDate) break; // Stop if log date is after attendance date
+
+    if (log.new_value === STRING_CONSTANT.FALSE) { 
+      lastEnabledDate = logDate; // Store the last enable date
+    }
+  }
+
+  if (!lastEnabledDate) return false; // No restrictions found
+
+  // Check if the attendance date is the next day after the last enabled date
+  const lastEnabledDateObj = new Date(lastEnabledDate);
+  const attendanceDateObj = new Date(attendanceDate);
+
+  const dayDifference = (attendanceDateObj - lastEnabledDateObj) / (1000 * 60 * 60 * 24);
+
+  // If last enable date was two days before, it means alternate-day restriction applies
+  return dayDifference === 1;
+};
+

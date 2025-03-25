@@ -19,5 +19,11 @@ export const STRING_CONSTANT = Object.freeze({
     APPROVE: "APPROVE",
     REJECT: "REJECT",
     ONE: "1",
-    INSENSITIVE: "insensitive"
+    INSENSITIVE: "insensitive",
+    PD: "PD",
+    ATTENDANCE_DISABLED: "is_attendance_disabled",
+    ASC: "asc",
+    ENABLED: "enabled",
+    DISABLED: "disabled",
+    FALSE: "false"
 });
