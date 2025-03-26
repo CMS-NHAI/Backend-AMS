@@ -458,7 +458,7 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
     return dateWiseAttendance;
   };
 
-async function checkTotalHoliday() {
+export async function checkTotalHoliday() {
     const result = await prisma.holiday_master.findMany({});
     return result ? result : {};
 }

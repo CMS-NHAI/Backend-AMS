@@ -7,7 +7,7 @@
 
 import { STATUS_CODES } from '../constants/statusCodeConstants.js'
 import { getAttendanceOverviewService ,getMarkInAttendanceCountService,getUserAttendanceAndProjectDetailsService} from '../services/attendanceService.js'
-import { determineStatus, getAttendanceService } from '../services/attendanceDetailService.js'
+import { checkTotalHoliday, determineStatus, getAttendanceService } from '../services/attendanceDetailService.js'
 import { getEmployeesHierarchy, getAttendanceForHierarchy } from '../services/attendanceService.js'
 import { getTeamAttendance, saveAttendance, updateMarkoutAttendance,saveOfflineAttendance } from '../services/db/attendaceService.db.js';
 import { calculateDateRange } from '../services/attendanceDetailService.js';
