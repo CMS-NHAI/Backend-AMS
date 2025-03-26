@@ -172,7 +172,7 @@ async function getGisData(uccId) {
     try {
         const result = await prisma.$queryRaw`
           SELECT 
-            "ID",
+            "ID"::integer,
             "UCC",
             public.ST_AsGeoJSON(geom) AS wkb_geometry  -- Convert geometry to GeoJSON
           FROM nhai_gis."UCCSegments" WHERE "UCC" = ${uccId};
