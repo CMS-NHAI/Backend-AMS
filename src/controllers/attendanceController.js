@@ -7,7 +7,7 @@
 
 import { STATUS_CODES } from '../constants/statusCodeConstants.js'
 import { getAttendanceOverviewService ,getMarkInAttendanceCountService,getUserAttendanceAndProjectDetailsService} from '../services/attendanceService.js'
-import { getAttendanceService } from '../services/attendanceDetailService.js'
+import { determineStatus, getAttendanceService } from '../services/attendanceDetailService.js'
 import { getEmployeesHierarchy, getAttendanceForHierarchy } from '../services/attendanceService.js'
 import { getTeamAttendance, saveAttendance, updateMarkoutAttendance,saveOfflineAttendance } from '../services/db/attendaceService.db.js';
 import { calculateDateRange } from '../services/attendanceDetailService.js';
@@ -229,12 +229,13 @@ export const getTeamAttendanceDetails = async (req, res) => {
         acc[emp.user_id] = emp;
         return acc;
       }, {});
-  
+      // compare holiday date start
+      const isHoliday = await checkTotalHoliday();
       // Process attendance records
       const processedAttendance = await Promise.all(attendanceRecords.map(async(record) => ({
         ...record,
         ...employeeMap[record.user_id], // Spread employee details into the record
-        status: await determineStatus(record),
+        status: determineStatus(record, isHoliday),
         total_hours: calculateTotalHours(record.check_in_time, record.check_out_time),
         project_name: await getProjectName(record.ucc_id),
         remarks: `check_in_remark: ${(record.check_in_remarks || STRING_CONSTANT.NA)}, check_out_remark: ${(record.check_out_remarks || STRING_CONSTANT.NA)}`
@@ -310,39 +311,7 @@ export const getTeamAttendanceDetails = async (req, res) => {
   
 };
 
-async function checkTotalHoliday() {
-    const result = await prisma.holiday_master.findMany({});
-    return result ? result : {};
-}
 
-export const determineStatus = async (record) => {
-  
-  // compare holiday date start
-  const isHoliday = await checkTotalHoliday();
-  if (Array.isArray(isHoliday) && isHoliday.some(holiday => 
-    holiday.holiday_Date?.toISOString().slice(0, 10) === record?.attendance_date?.toISOString().slice(0, 10)
-  )) {
-    return 'Holiday';
-  }
-
-  if (record.approval_status === true) {
-    return 'Present';
-  } 
-  
-  if (record.approval_status === false && record.approval_date !== null) {
-    return 'Absent';
-  }
-
-  if (!record.check_in_time) return 'Absent';
-  
-  const checkInStatus = record.check_in_geofence_status?.toUpperCase();
-  const checkOutStatus = record.check_out_geofence_status?.toUpperCase();
-  
-  if ((checkInStatus === STRING_CONSTANT.OUTSIDE || checkOutStatus === STRING_CONSTANT.OUTSIDE) && record.approval_date === null) {
-    return 'Offsite_Present';
-  }
-  return 'Present';
-};
 
 export const getProjectName = async (ucc_id) => {
   if (!ucc_id) return 'Project Not Found';
