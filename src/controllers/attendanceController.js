@@ -324,14 +324,21 @@ export const determineStatus = async (record) => {
   )) {
     return 'Holiday';
   }
-  // compare holiday date end
+
+  if (record.approval_status === true) {
+    return 'Present';
+  } 
+  
+  if (record.approval_status === false && record.approval_date !== null) {
+    return 'Absent';
+  }
 
   if (!record.check_in_time) return 'Absent';
   
   const checkInStatus = record.check_in_geofence_status?.toUpperCase();
   const checkOutStatus = record.check_out_geofence_status?.toUpperCase();
   
-  if (checkInStatus === 'OUTSIDE' || checkOutStatus === 'OUTSIDE') {
+  if ((checkInStatus === STRING_CONSTANT.OUTSIDE || checkOutStatus === STRING_CONSTANT.OUTSIDE) && record.approval_date === null) {
     return 'Offsite_Present';
   }
   return 'Present';
