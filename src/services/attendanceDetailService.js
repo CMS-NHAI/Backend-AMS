@@ -45,7 +45,7 @@ import { STRING_CONSTANT } from '../constants/stringConstant.js'
     }
   
     const projectDetails = await fetchProjectDetails(attendanceRecords)
-    const processedData = processAttendanceData(attendanceRecords, projectDetails);
+    const processedData = await processAttendanceData(attendanceRecords, projectDetails);
     
   
     return {
@@ -196,9 +196,9 @@ import { STRING_CONSTANT } from '../constants/stringConstant.js'
     })
   }
 
-  const processAttendanceData = (attendanceRecords, projectDetails) => {
+  const processAttendanceData = async (attendanceRecords, projectDetails) => {
     const projectMap = createProjectMap(projectDetails)
-    const processedRecords = processAttendanceRecords(attendanceRecords, projectMap)
+    const processedRecords = await processAttendanceRecords(attendanceRecords, projectMap)
     
     return {
       statistics: calculateStatistics(processedRecords),
@@ -213,19 +213,12 @@ import { STRING_CONSTANT } from '../constants/stringConstant.js'
     }, {})
   }
 
-  const processAttendanceRecords = (records, projectMap) => {
+  const processAttendanceRecords = async (records, projectMap) => {
+    const isHoliday = await checkTotalHoliday();
     return records.map(record => {
       const attendanceDate = new Date(record.attendance_date);
       // Determine status based on check_in_time
-      let status = record.check_in_time ? 'Present' : 'Absent';
-      if (record.check_in_time) {
-        const checkInStatus = record.check_in_geofence_status?.toUpperCase();
-        const checkOutStatus = record.check_out_geofence_status?.toUpperCase();
-        if (checkInStatus === 'OUTSIDE' || checkOutStatus === 'OUTSIDE') {
-          status = 'Offsite_Present';
-        }
-      }
-    
+      const status = determineStatus(record, isHoliday);
     
       return {
         ...record,
@@ -337,6 +330,7 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
   
   // Changed from object to array
   const employeeWiseAttendance = [];
+  const isHoliday = await checkTotalHoliday();
   
   for (const employee of employeeDetails) {
       let employeeAttendance = attendanceRecords.filter(
@@ -376,14 +370,7 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
       const processedAttendance = employeeAttendance.map(record => {
           const attendanceDate = new Date(record.attendance_date);
         
-          let status = record.check_in_time ? 'Present' : 'Absent';
-          if (record.check_in_time) {
-            const checkInStatus = record.check_in_geofence_status?.toUpperCase();
-            const checkOutStatus = record.check_out_geofence_status?.toUpperCase();
-            if (checkInStatus === 'OUTSIDE' || checkOutStatus === 'OUTSIDE') {
-              status = 'Offsite_Present';
-            }
-          }
+          const status = determineStatus(record, isHoliday);
          
           return {
               ...record,
@@ -470,3 +457,34 @@ export const processTeamAttendance = async (employeeUserIds, attendanceRecords, 
     }
     return dateWiseAttendance;
   };
+
+async function checkTotalHoliday() {
+    const result = await prisma.holiday_master.findMany({});
+    return result ? result : {};
+}
+
+export const determineStatus = (record, isHoliday) => {
+  if (Array.isArray(isHoliday) && isHoliday.some(holiday => 
+    holiday.holiday_Date?.toISOString().slice(0, 10) === record?.attendance_date?.toISOString().slice(0, 10)
+  )) {
+    return 'Holiday';
+  }
+
+  if (record.approval_status === true) {
+    return 'Present';
+  } 
+  
+  if (record.approval_status === false && record.approval_date !== null) {
+    return 'Absent';
+  }
+
+  if (!record.check_in_time) return 'Absent';
+  
+  const checkInStatus = record.check_in_geofence_status?.toUpperCase();
+  const checkOutStatus = record.check_out_geofence_status?.toUpperCase();
+  
+  if ((checkInStatus === STRING_CONSTANT.OUTSIDE || checkOutStatus === STRING_CONSTANT.OUTSIDE) && record.approval_date === null) {
+    return 'Offsite_Present';
+  }
+  return 'Present';
+};
