@@ -224,31 +224,37 @@ export async function getEmployeesByProject(req, userId) {
             }
         });
 
-        const today = new Date();
-        const attendanceRecords = await prisma.am_attendance.findMany({
-            where: {
-                user_id: { in: uniqueUserIds },
-                attendance_date: today,
-                // Apply this condition ONLY if isPD and offsiteOnly are both true
-                ...(parsedOffsiteOnly ? {
-                    OR: [
-                        { check_in_geofence_status: { equals: STRING_CONSTANT.OUTSIDE, mode: STRING_CONSTANT.INSENSITIVE } },
-                        { check_out_geofence_status: { equals: STRING_CONSTANT.OUTSIDE, mode: STRING_CONSTANT.INSENSITIVE } }
-                    ]
-                } : {})
-            },
-            select: {
-                user_id: true,
-                check_in_time: true,
-                check_out_time: true,
-                check_in_geofence_status: true,
-                check_out_geofence_status: true,
-                attendance_date: true,
-                approval_status: true,
-                approval_date: true,
-                attendance_status: true
-            }
-        });
+        // Fetch attendance records if offsiteOnly is true
+        let attendanceRecords = [];
+        if (parsedOffsiteOnly) {
+            const today = new Date();
+            attendanceRecords = await prisma.am_attendance.findMany({
+                where: {
+                    user_id: { in: uniqueUserIds },
+                    attendance_date: today,
+                    // Apply this condition ONLY if isPD and offsiteOnly are both true
+                    ...(parsedOffsiteOnly ? {
+                        OR: [
+                            { check_in_geofence_status: { equals: STRING_CONSTANT.OUTSIDE, mode: STRING_CONSTANT.INSENSITIVE } },
+                            { check_out_geofence_status: { equals: STRING_CONSTANT.OUTSIDE, mode: STRING_CONSTANT.INSENSITIVE } }
+                        ]
+                    } : {})
+                },
+                select: {
+                    user_id: true,
+                    check_in_time: true,
+                    check_out_time: true,
+                    check_in_geofence_status: true,
+                    check_out_geofence_status: true,
+                    attendance_date: true,
+                    approval_status: true,
+                    approval_date: true,
+                    attendance_status: true,
+                    attendance_date: true,
+                    attendance_id: true
+                }
+            });
+        }
 
         // Map attendance records to employees
         const attendanceMap = new Map();
@@ -257,13 +263,20 @@ export async function getEmployeesByProject(req, userId) {
             const checkOut = record.check_out_time ? new Date(record.check_out_time) : null;
             let status = "Absent";
 
-            // Determine status
-            if (
-                record.check_in_geofence_status === STRING_CONSTANT.OUTSIDE ||
-                record.check_out_geofence_status === STRING_CONSTANT.OUTSIDE
+            if (record.approval_status === true) {
+                status = "Present";
+            }
+            else if (record.approval_status === false && record.approval_date !== null) {
+                status = "Absent";
+            }
+            else if (
+                (record.check_in_geofence_status.toLowerCase() === STRING_CONSTANT.OUTSIDE.toLowerCase() ||
+                    record.check_out_geofence_status.toLowerCase() === STRING_CONSTANT.OUTSIDE.toLowerCase()) &&
+                record.approval_date === null
             ) {
                 status = "Offsite Present";
-            } else if (record.check_in_time) {
+            }
+            else if (record.check_in_time) {
                 status = "Present";
             }
 
@@ -275,10 +288,11 @@ export async function getEmployeesByProject(req, userId) {
                 status,
                 approval_status: record.approval_status,
                 approval_date: record.approval_date,
-                attendance_status: record.attendance_status
+                attendance_status: record.attendance_status,
+                attendance_date: record.attendance_date,
+                attendance_id: record.attendance_id
             };
 
-            // If user already has records, append; otherwise, create new array
             if (!attendanceMap.has(record.user_id)) {
                 attendanceMap.set(record.user_id, [attendanceEntry]);
             } else {
@@ -286,12 +300,19 @@ export async function getEmployeesByProject(req, userId) {
             }
         });
 
-        // Merge employee details with attendance data
-        const employeeDataWithAttendance = employeeDetails.map(emp => ({
-            ...emp,
-            attendance: attendanceMap.get(emp.user_id) || [] // If no attendance, return null
-        }));
-
+        // Merge employee details with attendance data based on offsiteOnly
+        let employeeDataWithAttendance;
+        if (parsedOffsiteOnly) {
+            employeeDataWithAttendance = employeeDetails.filter(emp => attendanceMap.has(emp.user_id))
+                .map(emp => ({
+                    ...emp,
+                    attendance: attendanceMap.get(emp.user_id) || [] // If no attendance, return null
+                }));
+        } else {
+            employeeDataWithAttendance = employeeDetails.map(emp => ({
+                ...emp
+            }));
+        }
         logger.info('User records and attendance data fetched successfully.');
 
         return {
