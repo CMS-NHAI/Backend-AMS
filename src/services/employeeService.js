@@ -6,6 +6,7 @@ import { STRING_CONSTANT } from "../constants/stringConstant.js";
 import { getTeamUserIds } from "../helpers/attendanceHelper.js";
 import { parseBoolean } from "../utils/attendaceUtils.js";
 import { logger } from "../utils/logger.js";
+import { calculateTotalHours } from "./attendanceDetailService.js";
 
 /**
  * Fetches checked-in employees based on the given filters and pagination details.
@@ -284,7 +285,7 @@ export async function getEmployeesByProject(req, userId) {
             const attendanceEntry = {
                 check_in_time: checkIn,
                 check_out_time: checkOut,
-                totalHours: checkIn && checkOut ? (checkOut - checkIn) / (1000 * 60 * 60) : 0, // Convert ms to hours
+                totalHours: calculateTotalHours(checkIn, checkOut),
                 status,
                 approval_status: record.approval_status,
                 approval_date: record.approval_date,
