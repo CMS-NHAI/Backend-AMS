@@ -238,7 +238,8 @@ export const getTeamAttendanceDetails = async (req, res) => {
         status: determineStatus(record, isHoliday),
         total_hours: calculateTotalHours(record.check_in_time, record.check_out_time),
         project_name: await getProjectName(record.ucc_id),
-        remarks: `check_in_remark: ${(record.check_in_remarks || STRING_CONSTANT.NA)}, check_out_remark: ${(record.check_out_remarks || STRING_CONSTANT.NA)}`
+        remarks: `check_in_remark: ${(record.check_in_remarks || STRING_CONSTANT.EMPTY)}, check_out_remark: ${(record.check_out_remarks || STRING_CONSTANT.EMPTY)}`
+       // remarks: `check_in_remark: ${(record.check_in_remarks || STRING_CONSTANT.NA)}, check_out_remark: ${(record.check_out_remarks || STRING_CONSTANT.NA)}`
       })))
       
       const sortedAttendance = processedAttendance.sort((a, b) => {
