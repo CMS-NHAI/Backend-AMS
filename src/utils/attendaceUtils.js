@@ -13,7 +13,8 @@ import { STRING_CONSTANT } from "../constants/stringConstant.js";
 export const exportToCSV = async (res, data,filename="users", headers = null) => {
     try {
         if (!data || data.length === 0) {
-            return res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.EXPORT_DATA_NOT_FOUND });
+           // return res.status(STATUS_CODES.BAD_REQUEST).json({ message: RESPONSE_MESSAGES.ERROR.EXPORT_DATA_NOT_FOUND });
+          //   data = [];
         }
 
         if (!headers) {
@@ -26,18 +27,19 @@ export const exportToCSV = async (res, data,filename="users", headers = null) =>
         Promise.all[await res.setHeader("Content-Type", "text/csv"),
         await res.setHeader("Content-Disposition", `attachment; filename=${filename}.csv`)];
 
-        const csvStream = format({ headers: headers.map(h => h.title) });
+        const csvStream = format({ headers: false });
 
         csvStream.pipe(res);
-
-        data.forEach(item => {
-            const row = {};
-            headers.forEach(header => {
-                row[header.title] = item[header.id];
+        const headerRow = headers.map(header => header.title);
+        csvStream.write(headerRow);
+        if (data && data.length > 0) {
+            data.forEach(item => {
+                const row = headers.map(header => 
+                    item[header.id] || ''
+                );
+                csvStream.write(row);
             });
-            csvStream.write(row);
-        });
-
+        }
         csvStream.end();
     } catch(error) {
         console.log(error, "error")
