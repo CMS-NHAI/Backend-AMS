@@ -9,7 +9,7 @@ import { STATUS_CODES } from '../constants/statusCodeConstants.js'
 import { getAttendanceOverviewService ,getMarkInAttendanceCountService,getUserAttendanceAndProjectDetailsService} from '../services/attendanceService.js'
 import { checkTotalHoliday, determineStatus, getAttendanceService } from '../services/attendanceDetailService.js'
 import { getEmployeesHierarchy, getAttendanceForHierarchy } from '../services/attendanceService.js'
-import { getTeamAttendance, saveAttendance, updateMarkoutAttendance,saveOfflineAttendance } from '../services/db/attendaceService.db.js';
+import { getTeamAttendance, saveAttendance, updateMarkoutAttendance,saveOfflineAttendance, validateCheckInCheckOut } from '../services/db/attendaceService.db.js';
 import { calculateDateRange } from '../services/attendanceDetailService.js';
 import { processTeamAttendance } from '../services/attendanceDetailService.js';
 import APIError from '../utils/apiError.js';
@@ -720,44 +720,67 @@ export const markOfflineAttendance = async (req, res) => {
         throw new APIError(STATUS_CODES.NOT_ACCEPTABLE, RESPONSE_MESSAGES.ERROR.INVALID_FACEAUTHSTATUS);
       }
 
-      const checkinDateTime = new Date(checkinTime.replace(' ', 'T') + 'Z');
-      const checkoutDateTime = checkoutTime ? new Date(checkoutTime.replace(' ', 'T') + 'Z') : null;
-      if (checkoutDateTime && checkoutDateTime < checkinDateTime) {
-        throw new APIError(
-          STATUS_CODES.BAD_REQUEST,
-          RESPONSE_MESSAGES.ERROR.CHECKOUT_TIME_SHOULD_BE_AFTER_CHECKIN
-        );
-      }
-      // Validate mark in and mark out time difference
-      if (checkoutDateTime) {
-        const timeDifference = (checkoutDateTime - checkinDateTime) / (1000 * 60 * 60); // Convert ms to hours
-        if (timeDifference > 24) {
-          throw new APIError(STATUS_CODES.BAD_REQUEST,RESPONSE_MESSAGES.ERROR.CHECKOUT_TIME_SHOULD_BE_LESS_THAN_24_HOURS);
-        }
-      }
+      await validateCheckInCheckOut(checkinTime, checkoutTime, userId);
+
       const markInOfflineAttendancedata = {
         ucc_id: ucc,
-        check_in_time: checkinTime,
-        check_in_lat: checkinLat,
-        check_in_lng: checkinLon,
-        check_in_device_id: checkinDeviceId,
-        check_in_ip_address: checkinIpAddress,
-        check_in_remarks: checkinRemarks,
-        attendance_date: new Date(checkinTime.replace(' ', 'T') + 'Z').toISOString(),
-        check_in_geofence_status: checkInGeofenceStatus,
+        user_id: userId,
         created_by: userId,
         created_at: new Date(),
-        user_id: userId,
-        check_out_time: checkoutTime,
-        check_out_lat: checkoutLat,
-        check_out_lng: checkoutLon,
-        check_out_device_id: checkoutDeviceId,
-        check_out_ip_address: checkoutIpAddress,
-        check_out_remarks: checkoutRemarks,
-        check_out_geofence_status: checkoutGeofenceStatus,
         updated_by: userId,
-        updated_at: new Date()
+        updated_at: new Date(),
       };
+      
+      // Determine attendance date
+      let attendanceDateMark = null;
+      let checkinDateTime = checkinTime ? new Date(checkinTime.replace(' ', 'T') + 'Z') : null;
+      let checkoutDateTime = checkoutTime ? new Date(checkoutTime.replace(' ', 'T') + 'Z') : null;
+      
+      if (checkinDateTime) {
+        attendanceDateMark = checkinDateTime.toISOString().split('T')[0]; // Use check-in date
+      } else if (checkoutDateTime) {
+        // Fetch the latest check-in record if check-in is missing
+        const existingAttendance = await prisma.am_attendance.findFirst({
+          where: {
+            user_id: userId,
+            ucc_id: ucc,
+            attendance_date: { lte: checkoutDateTime }, // Get latest check-in before or on check-out date
+          },
+          orderBy: { check_in_time: 'desc' }, // Most recent check-in
+        });
+      
+        if (!existingAttendance) {
+          throw new APIError(STATUS_CODES.BAD_REQUEST, "Check-in record is required before check-out.");
+        }
+
+        checkinDateTime = new Date(existingAttendance.check_in_time);
+        attendanceDateMark = checkinDateTime;
+      }
+      
+      // Set the final attendance date
+      markInOfflineAttendancedata.attendance_date = new Date(attendanceDateMark).toISOString();
+      
+      // Handle check-in only
+      if (checkinTime) {
+        markInOfflineAttendancedata.check_in_time = checkinTime;
+        markInOfflineAttendancedata.check_in_lat = checkinLat;
+        markInOfflineAttendancedata.check_in_lng = checkinLon;
+        markInOfflineAttendancedata.check_in_device_id = checkinDeviceId;
+        markInOfflineAttendancedata.check_in_ip_address = checkinIpAddress;
+        markInOfflineAttendancedata.check_in_remarks = checkinRemarks;
+        markInOfflineAttendancedata.check_in_geofence_status = checkInGeofenceStatus;
+      }
+      
+      // Handle check-out only
+      if (checkoutTime) {
+        markInOfflineAttendancedata.check_out_time = checkoutTime;
+        markInOfflineAttendancedata.check_out_lat = checkoutLat;
+        markInOfflineAttendancedata.check_out_lng = checkoutLon;
+        markInOfflineAttendancedata.check_out_device_id = checkoutDeviceId;
+        markInOfflineAttendancedata.check_out_ip_address = checkoutIpAddress;
+        markInOfflineAttendancedata.check_out_remarks = checkoutRemarks;
+        markInOfflineAttendancedata.check_out_geofence_status = checkoutGeofenceStatus;
+      }
 
       const attendanceDate = checkinDateTime.toISOString().split("T")[0];
 
@@ -813,7 +836,6 @@ export const markOfflineAttendance = async (req, res) => {
     });
 
   } catch (error) {
-    console.log(error,"error faced")
     if (error instanceof APIError) {
       return res.status(error.statusCode).json({
         success: false,
