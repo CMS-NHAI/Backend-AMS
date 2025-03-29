@@ -306,15 +306,19 @@ export const saveOfflineAttendance = async (attendance) => {
       attendance_date: attendance.attendance_date,
     },
   });
-  if (existingAttendance) {
-    throw new APIError(STATUS_CODES.OK, RESPONSE_MESSAGES.SUCCESS.RECORD_ALREADY_EXISTS)
-  }
-  const markinDistanceData = await getGeoFenceStatus(attendance.ucc_id, lat, long);
-  if (markinDistanceData[0]?.distance > 200) {
-    attendance.check_in_geofence_status = STRING_CONSTANT.OUTSIDE
-  } else {
-    attendance.check_in_geofence_status = STRING_CONSTANT.INSIDE
-  }
+  if (existingAttendance && attendance.check_in_time) {
+      throw new APIError(STATUS_CODES.OK, RESPONSE_MESSAGES.SUCCESS.RECORD_ALREADY_EXISTS)
+    }
+    if (existingAttendance?.check_out_time) {
+      throw new APIError(STATUS_CODES.OK, "Check-out has already been marked for this attendance.");
+    }
+    const markinDistanceData = await getGeoFenceStatus(attendance.ucc_id, lat, long);
+    if (markinDistanceData[0]?.distance > 200) {
+      attendance.check_in_geofence_status = STRING_CONSTANT.OUTSIDE
+    } else {
+      attendance.check_in_geofence_status = STRING_CONSTANT.INSIDE
+    }
+    
   if (attendance.check_out_time && attendance.check_out_lat && attendance.check_out_lng ) {
     const markoutDistanceData = await getGeoFenceStatus(attendance.ucc_id, markoutLat, markoutLong);
     if (markoutDistanceData[0]?.distance > 200) {
@@ -322,6 +326,25 @@ export const saveOfflineAttendance = async (attendance) => {
     } else {
       attendance.check_out_geofence_status = STRING_CONSTANT.INSIDE
     }
+    
+    if (existingAttendance) {
+      return await prisma.$queryRaw`
+        UPDATE tenant_nhai.am_attendance
+        SET 
+          "check_out_time" = ${attendance.check_out_time}::timestamp,
+          "check_out_lat" = ${attendance.check_out_lat}::numeric,
+          "check_out_lng" = ${attendance.check_out_lng}::numeric,
+          "check_out_loc" = public.ST_GeographyFromText('SRID=4326;POINT(' || ${markoutLat} || ' ' || ${markoutLong} || ')'),
+          "check_out_remarks" = ${attendance.check_out_remarks},
+          "check_out_geofence_status" = ${attendance.check_out_geofence_status},
+          "updated_by" = ${attendance.updated_by},
+          "updated_at" = NOW()
+        WHERE 
+          "attendance_id" = ${existingAttendance.attendance_id}
+        RETURNING "attendance_id";
+      `;
+    }
+
     return await prisma.$queryRaw`
   INSERT INTO tenant_nhai.am_attendance
   ("ucc_id", "check_in_time", "check_in_lat", "check_in_lng", "check_in_loc", "check_in_remarks","check_in_geofence_status", "attendance_date", "created_by", "created_at","user_id","check_out_time","check_out_lat","check_out_lng","check_out_loc","check_out_remarks","check_out_geofence_status","updated_by","updated_at")
@@ -339,5 +362,71 @@ export const saveOfflineAttendance = async (attendance) => {
   (${attendance.ucc_id}, ${attendance.check_in_time}::timestamp, ${attendance.check_in_lat}::numeric, ${attendance.check_in_lng}::numeric, 
     public.ST_GeographyFromText('SRID=4326;POINT(' || ${lat} || ' ' || ${long} || ')'), 
   ${attendance.check_in_remarks},${attendance.check_in_geofence_status}, ${attendance.attendance_date}::date, ${attendance.created_by}, NOW(),${attendance.user_id}) RETURNING "attendance_id"`;
+  }
+}
+
+export async function validateCheckInCheckOut(checkinTime, checkoutTime, user_id, ucc_id) {
+  const currentTime = new Date(); // Get the current timestamp
+  
+  let checkinDateTime = null; // Initialize check-in time variable
+  let checkoutDateTime = checkoutTime ? new Date(checkoutTime.replace(' ', 'T') + 'Z') : null;
+
+  // If check-in time is provided, validate it
+  if (checkinTime) {
+    checkinDateTime = new Date(checkinTime.replace(' ', 'T') + 'Z');
+    if (checkinDateTime > currentTime) {
+      throw new APIError(
+        STATUS_CODES.BAD_REQUEST,
+        RESPONSE_MESSAGES.ERROR.CHECKIN_TIME_CANNOT_BE_IN_FUTURE
+      );
+    }
+  }
+
+  // If check-out is provided, validate it
+  if (checkoutDateTime) {
+    // Fetch the latest check-in record if check-in time is not provided
+    if (!checkinDateTime) {
+      const existingAttendance = await prisma.am_attendance.findFirst({
+        where: {
+          user_id: user_id,
+          ucc_id: ucc_id,
+          attendance_date: { lte: checkoutDateTime }, // Get latest check-in before or on check-out date
+        },
+        orderBy: { check_in_time: 'desc' }, // Get the most recent check-in
+      });
+
+      if (!existingAttendance) {
+        throw new APIError(
+          STATUS_CODES.BAD_REQUEST,
+          RESPONSE_MESSAGES.ERROR.CHECKOUT_WITHOUT_CHECKIN
+        );
+      }
+
+      checkinDateTime = new Date(existingAttendance.check_in_time);
+    }
+    // Ensure check-out is after check-in
+    if (checkoutDateTime < checkinDateTime) {
+      throw new APIError(
+        STATUS_CODES.BAD_REQUEST,
+        RESPONSE_MESSAGES.ERROR.CHECKOUT_TIME_SHOULD_BE_AFTER_CHECKIN
+      );
+    }
+
+    // Ensure check-out is within 24 hours of check-in
+    const timeDifference = (checkoutDateTime - checkinDateTime) / (1000 * 60 * 60); // Convert ms to hours
+    if (timeDifference > 24) {
+      throw new APIError(
+        STATUS_CODES.BAD_REQUEST,
+        RESPONSE_MESSAGES.ERROR.CHECKOUT_TIME_SHOULD_BE_LESS_THAN_24_HOURS
+      );
+    }
+
+    // Ensure check-out is not in the future
+    if (checkoutDateTime > currentTime) {
+      throw new APIError(
+        STATUS_CODES.BAD_REQUEST,
+        RESPONSE_MESSAGES.ERROR.CHECKOUT_TIME_CANNOT_BE_IN_FUTURE
+      );
+    }
   }
 }

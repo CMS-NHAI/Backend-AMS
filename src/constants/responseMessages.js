@@ -41,7 +41,10 @@ export const RESPONSE_MESSAGES = {
     NO_USER_ID: "Unauthorized: No user ID found",
     FORBIDDEN: "Access Denied: User not found",
     ATTENDANCE_RECORD_NOT_FOUND: "Attendance record not found to update the attendance status",
-    USER_NOT_FOUND: "User not found to Enable/Disable attendance"
+    USER_NOT_FOUND: "User not found to Enable/Disable attendance",
+    CHECKIN_TIME_CANNOT_BE_IN_FUTURE: "Check-in time can not be in Future.",
+    CHECKOUT_TIME_CANNOT_BE_IN_FUTURE: "Check-Out time can not be in Future.",
+    CHECKOUT_WITHOUT_CHECKIN: "Trying to check out without check-in not allowed."
     
   },
   SUCCESS: {
